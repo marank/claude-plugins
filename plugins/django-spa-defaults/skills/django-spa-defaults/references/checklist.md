@@ -1,6 +1,6 @@
 # House defaults checklist
 
-Version: 1.0.1 — the plugin's version (`django-spa-defaults`). A repo records the version it was last checked against in AGENTS.md.
+Version: 1.2.0 — the plugin's version (`django-spa-defaults`). A repo records the version it was last checked against in AGENTS.md.
 
 The norm for **existing repositories**: a repo meets the house defaults when every item below either passes or is listed as an accepted deviation in the repo's `AGENTS.md`. Only these items produce findings. The other references describe *how* to build things for a new project; when reviewing they are a lookup for fixing an item, never a source of extra findings.
 
@@ -36,10 +36,10 @@ Each item is one decision, so accepting it can't hide an unrelated problem. Item
 
 | ID | Level | Scope | How | Rule | Tools |
 |---|---|---|---|---|---|
-| BE-01 | should | all | auto | Apps live in `backend/apps/<name>/`; an app with models has a `models/` package, not `models.py`. | — |
-| BE-02 | must | all | auto | A custom user model (`AUTH_USER_MODEL`) exists. | — |
-| BE-03 | must | all | auto | Primary keys are UUIDs, enforced by a system check (`E001` in `apps/core/checks.py`). | — |
-| BE-04 | must | all | auto | Usernames are case-insensitive: a `Lower("username")` unique constraint, and no exact `username=` lookups outside tests. | — |
+| BE-01 | should | all | auto | An app with models has a `models/` package, not a single `models.py`. | — |
+| BE-02 | should | new | auto | A custom user model (`AUTH_USER_MODEL`) exists — cheap at the start, a migration of every user reference later, so existing repos are not asked to switch. | — |
+| BE-03 | should | new | auto | Primary keys are UUIDs, enforced by a system check (`E001` in `apps/core/checks.py`) — free at the start, a migration of every table, foreign key and URL later. | — |
+| BE-04 | must | all | auto | Usernames are case-insensitive: a `Lower("username")` unique constraint on a custom user model, or — with Django's own user model — an authentication backend that looks names up case-insensitively; and no exact `username=` lookups outside tests. | **custom user model with `Lower("username")`** · a `ModelBackend` subclass with `username__iexact` |
 | BE-05 | must | all | auto | Settings read the environment only through one module, whose boolean parser rejects invalid values. | **`config/env.py` from the template** (no dependency) · pydantic-settings (django-environ does not pass: it reads invalid booleans as false) |
 | BE-06 | should | all | auto | Import boundaries between layers and apps are configured, and every app is in them. | **import-linter** · tach |
 | BE-07 | should | all | auto | A linter selects at least ruff's `E F I UP B DJ SIM C90 DTZ T20 ERA S` (or the same checks elsewhere); no length rules (`PLR0915`) are selected. | **ruff** · flake8 with plugins (then judged by hand) |
@@ -55,6 +55,7 @@ Each item is one decision, so accepting it can't hide an unrelated problem. Item
 | BE-18 | should | all | auto | The linter reports swallowed errors: blind `except Exception`, `except: pass` and the like. | **ruff `BLE` and `TRY`** |
 | BE-19 | should | all | auto | The type checker also reports truthiness checks on always-true objects, variables set only in some branches, a `match` that misses a case, and `type: ignore` without an error code. | **mypy error codes `truthy-bool`, `possibly-undefined`, `exhaustive-match`, `ignore-without-code`** · pyright or basedpyright in strict mode |
 | BE-20 | should | all | auto | The linter reports slow patterns and longer spellings of what the standard library does directly. | **ruff `PERF` and `FURB`** |
+| BE-21 | should | new | auto | Apps live in `backend/apps/<name>/` — moving existing apps changes every import path for little gain. | — |
 
 ## Security
 
@@ -96,7 +97,7 @@ Each item is one decision, so accepting it can't hide an unrelated problem. Item
 |---|---|---|---|---|---|
 | FE-01 | must | all | auto | The API types are generated: the OpenAPI schema and the generated types are committed, and the checks fail when they drift. | **openapi-typescript** · orval, @hey-api/openapi-ts |
 | FE-02 | should | all | auto | API enums are listed with `allValues` (`src/utils/enums.ts`). | — (the template's helper) |
-| FE-03 | should | all | auto | The frontend ships English and German (at least), with the same files per locale. | **vue-i18n; react-i18next** · Lingui, FormatJS |
+| FE-03 | should | new | auto | The frontend ships English and German (at least), with the same files per locale — cheap with translation keys from the start, every text of every component later. | **vue-i18n; react-i18next** · Lingui, FormatJS |
 | FE-04 | should | all | auto | The linter limits complexity and nesting and sets import boundaries; it sets no length limits (`max-lines`, `max-statements`). | **ESLint** · oxlint (same rule names), Biome (`noExcessiveCognitiveComplexity`, `noRestrictedImports`) |
 | FE-05 | should | all | auto | Frontend coverage thresholds are at least 90/90/85/85 (lines/statements/functions/branches). | **Vitest** · Jest |
 | FE-06 | should | new | auto | `noUncheckedIndexedAccess` is on. | — |
@@ -111,4 +112,6 @@ Each item is one decision, so accepting it can't hide an unrelated problem. Item
 
 Only versions that change items are listed; a plugin release without an entry leaves the checklist as it was.
 
+- **1.2.0** (2026-11-21): new BE-21 (apps in `backend/apps/`, new projects only, split from BE-01); widened BE-01 (only the `models/` package), BE-03 and FE-03 (new projects only; BE-03 `should`).
+- **1.1.0** (2026-11-21): widened BE-02 (`should`, new projects only), BE-04 (a case-insensitive authentication backend passes too).
 - **1.0.0** (2026-11-21): first published version, all items.

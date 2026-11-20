@@ -279,10 +279,13 @@ def repo_07(r: Repo) -> Result:
 
 
 def be_01(r: Repo) -> Result:
-    if not r.exists("backend/apps"):
-        return Result("fail", ["backend/apps missing"])
-    return verdict([f"backend/apps/{a}/models.py is a module, not a package" for a in r.apps()
-                    if r.exists(f"backend/apps/{a}/models.py")])
+    # Every Django app of the backend, wherever it lives (an apps.py marks it).
+    apps = [p.parent for p in r.files("backend/**/apps.py")]
+    return verdict([f"{r.rel(a)}/models.py is a module, not a package" for a in apps if (a / "models.py").is_file()])
+
+
+def be_21(r: Repo) -> Result:
+    return verdict([] if r.exists("backend/apps") else ["backend/apps missing"])
 
 
 def be_02(r: Repo) -> Result:
@@ -298,8 +301,11 @@ def be_03(r: Repo) -> Result:
 def be_04(r: Repo) -> Result:
     py = r.files("backend/apps/**/*.py") + r.files("backend/config/**/*.py")
     problems = []
-    if not r.grep(r"""Lower\(\s*["']username["']\s*\)""", py):
-        problems.append('no Lower("username") unique constraint')
+    constraint = r.grep(r"""Lower\(\s*["']username["']\s*\)""", py)
+    # With Django's own user model: a backend that looks names up case-insensitively.
+    backend = "AUTH_USER_MODEL" not in r.settings_text() and r.grep(r"username__iexact", py)
+    if not constraint and not backend:
+        problems.append('no Lower("username") unique constraint and no case-insensitive login backend')
     problems += [f"exact username lookup: {h}" for h in r.grep(
         r"\.(filter|get|exclude|get_or_create|update_or_create)\("
         r"([^)]*\busername\s*=|\s*\*\*\{\s*\w+\.USERNAME_FIELD\s*:)", py)]
