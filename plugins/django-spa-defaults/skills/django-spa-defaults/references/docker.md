@@ -18,6 +18,7 @@
 | `docker/django_proxy.conf` | proxy headers shared by `/api/`, `/api/auth/login` and `/django-admin` |
 | `docker/app.conf.template` | `/api/` → Django, `/django-admin` → Django, `/django-static/`, `/docs/` (with docs), SPA with `index.html` fallback |
 | `.env.example`, `.dockerignore`, `.gitignore`, `.editorconfig` | as named |
+| `.gitattributes` | LF for every text file on every platform; without it a Windows clone with `core.autocrlf` builds CRLF scripts into the image and `sh` fails on them |
 
 These files are our own conventions, so they're templates. They still depend on tools whose options drift (gunicorn flags, supervisord sections, nginx directives, procrastinate's worker and healthchecks commands). After filling them in, check each flag against the current docs of the version the image installs, and fix the template in the generated repo if something was renamed or removed.
 

@@ -1,6 +1,6 @@
 # House defaults checklist
 
-Checklist version: 1.8
+Checklist version: 1.9
 
 The norm for **existing repositories**: a repo meets the house defaults when every item below either passes or is listed as an accepted deviation in the repo's `AGENTS.md`. Only these items produce findings. The other references describe *how* to build things for a new project; when reviewing they are a lookup for fixing an item, never a source of extra findings.
 
@@ -24,6 +24,7 @@ Each item is one decision, so accepting it can't hide an unrelated problem. Item
 | REPO-05 | must | all | auto | Every environment variable the app reads at runtime (settings, apps) has an entry in `.env.example`. Variables of CI and tooling scripts (`CI`, `GITHUB_*`) don't belong there. | — |
 | REPO-06 | must | all | auto | Lock files are committed, one package manager per part (backend, frontend): exactly one lock file in each. | **uv; pnpm** · poetry, pdm; npm, yarn, bun |
 | REPO-07 | should | all | auto | `.editorconfig` exists; `.gitignore` ignores `.env`. | — |
+| REPO-19 | should | all | auto | `.gitattributes` checks text files out with LF on every platform (`* text=auto eol=lf`), so a Windows clone with `core.autocrlf` doesn't put CRLF into shell scripts and the Docker image. | — |
 | REPO-13 | should | all | auto | Releases as recorded in AGENTS.md (`- Releases: release-please` or `by hand`): with release-please, its config, manifest and workflow exist. Not recorded yet → recorded from what the repo shows, asked only otherwise (`repo-files.md` section 4). | **release-please** · by hand (tag + GitHub release) |
 | REPO-14 | should | all | auto | Contributions as recorded in AGENTS.md (`- Contributions: external` or `team only`): with external contributors, `CODE_OF_CONDUCT.md` exists and CONTRIBUTING.md asks for the DCO sign-off. Not recorded yet → recorded from what the repo shows, asked only otherwise. | **DCO GitHub App** for the sign-off check |
 | REPO-15 | should | all | auto | CONTRIBUTING.md follows the template: sections Issues, Pull requests, License with the template's wording, in the mode recorded in AGENTS.md — external (pull requests welcome) or team only (in active development: an IMPORTANT note that pull requests are not accepted for now). | — |
@@ -99,6 +100,7 @@ Each item is one decision, so accepting it can't hide an unrelated problem. Item
 
 ## Changelog
 
+- **1.9** (2026-11-20): new REPO-19 (`.gitattributes` with LF line endings).
 - **1.8** (2026-11-20): new REPO-18 (ADRs only when the project decides on them); retired REPO-08 (`adr/` in every new project).
 - **1.7** (2026-11-20): new REPO-17 (release-please starts at 0.1.0).
 - **1.6** (2026-11-20): new CI-09 (package manager version in one place; Node 25+ ships without corepack); widened to goals with example tools: REPO-03, REPO-06, REPO-10, BE-05, BE-06, BE-07, BE-08, SEC-02, SEC-04, SEC-06, CI-04, CI-05, FE-01, FE-04, FE-05, FE-07, DOCKER-08 (the Tools column).

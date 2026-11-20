@@ -272,6 +272,14 @@ def repo_07(r: Repo) -> Result:
     return verdict(problems)
 
 
+def repo_19(r: Repo) -> Result:
+    if not r.exists(".gitattributes"):
+        return Result("fail", [".gitattributes missing"])
+    lines = [line.split() for line in r.read(".gitattributes").splitlines()]
+    ok = any(parts[0] == "*" and "eol=lf" in parts[1:] for parts in lines if parts)
+    return verdict([] if ok else [".gitattributes does not set `* text=auto eol=lf`"])
+
+
 def be_01(r: Repo) -> Result:
     if not r.exists("backend/apps"):
         return Result("fail", ["backend/apps missing"])

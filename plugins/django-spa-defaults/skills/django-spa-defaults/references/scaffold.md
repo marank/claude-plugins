@@ -20,7 +20,7 @@ Read this when the user wants a new project. `SKILL.md` has the conventions and 
 ├── adr/                architecture decision records, with ADRs: yes (template + the decisions from step 1)
 ├── AGENTS.md, CLAUDE.md, README.md, CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md, BACKLOG.md
 ├── LICENSE (unless proprietary); with release-please also release-please-config.json, .release-please-manifest.json
-└── .env.example, .gitignore, .dockerignore, .editorconfig, .pre-commit-config.yaml
+└── .env.example, .gitignore, .gitattributes, .dockerignore, .editorconfig, .pre-commit-config.yaml
 ```
 
 Two ways to run it, and both must work:
@@ -73,7 +73,7 @@ Read `references/frontend.md` (shared: pnpm, dev port and proxy, API client and 
 
 ### 5. Docker and environment
 
-Read `references/docker.md`; copy `assets/Dockerfile`, `compose.yml`, `compose.dev.yml`, `docker/*`, `.env.example`, `.dockerignore`, `.gitignore`, `.editorconfig`, `scripts/sync_env.py`, and fill the placeholders (researched versions and digests, project name, `<TIMEZONE>`). Keep the hardening of both containers — read-only root filesystem, no capabilities, unprivileged user, no setuid binaries, only `/data`, `/backups` (worker) and `/tmp` writable — supervisord as PID 1 of the app stopping it when a program keeps failing, and every runtime check in `docker/smoke-test`. `cp .env.example .env` so native verification works.
+Read `references/docker.md`; copy `assets/Dockerfile`, `compose.yml`, `compose.dev.yml`, `docker/*`, `.env.example`, `.dockerignore`, `.gitignore`, `.gitattributes`, `.editorconfig`, `scripts/sync_env.py`, and fill the placeholders (researched versions and digests, project name, `<TIMEZONE>`). Keep the hardening of both containers — read-only root filesystem, no capabilities, unprivileged user, no setuid binaries, only `/data`, `/backups` (worker) and `/tmp` writable — supervisord as PID 1 of the app stopping it when a program keeps failing, and every runtime check in `docker/smoke-test`. `cp .env.example .env` so native verification works.
 
 ### 6. justfile, CI, releases and Dependabot
 

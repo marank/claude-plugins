@@ -25,7 +25,7 @@ They are made for **web apps with a Django backend and an SPA that someone hosts
 - **Session auth on the same origin.** Right for a browser SPA served with the API. Not for mobile apps or third-party API clients — they need token auth (and then CORS), which this skill doesn't set up.
 - **One image, app + worker on one host with `docker compose`.** Ideal for a single server. For Kubernetes or horizontal scaling, nginx and gunicorn would be split as well and the manifests are a project of their own.
 - **SQLite natively, PostgreSQL in production.** Code must work on both, so no PostgreSQL-only fields or lookups (`ArrayField`, `distinct(<fields>)`, …). A project that needs them gives up native SQLite — record that in AGENTS.md.
-- **Backend plus SPA.** A pure API without a frontend, a frontend without Django, a library or a CLI tool get only the repo-level parts (AGENTS.md, CONTRIBUTING, tasks = CI, Dependabot, license gate, `.editorconfig`, pre-commit); the rest doesn't apply.
+- **Backend plus SPA.** A pure API without a frontend, a frontend without Django, a library or a CLI tool get only the repo-level parts (AGENTS.md, CONTRIBUTING, tasks = CI, Dependabot, license gate, `.editorconfig`, `.gitattributes`, pre-commit); the rest doesn't apply.
 - **Frontend in English and German, backend English unless users see its texts.** Further languages on request.
 
 ## Conventions everywhere
