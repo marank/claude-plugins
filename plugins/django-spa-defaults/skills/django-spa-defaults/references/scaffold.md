@@ -10,7 +10,7 @@ Read this when the user wants a new project. `SKILL.md` has the conventions and 
 ├── frontend/           Vue 3 or React + Vite + TypeScript (pnpm)
 ├── docs/               VitePress, docs/de + docs/en (optional)
 ├── docker/             supervisord, nginx, start-nginx, healthcheck, worker, smoke-test, exit-on-fatal
-├── scripts/sync_env.py brings an existing .env up to date with .env.example
+├── scripts/           sync_env.py (.env up to date with .env.example), check_changed.py (checks before a commit)
 ├── justfile            every command: dev, checks (= CI), API types, migrations, Docker
 ├── Dockerfile          SPA (+ docs) → python image: supervisord with nginx + gunicorn; also runs the worker
 ├── compose.yml         db (Postgres) + app + worker (hardened, image from ghcr.io); works with .env alone
@@ -20,7 +20,7 @@ Read this when the user wants a new project. `SKILL.md` has the conventions and 
 ├── adr/                architecture decision records, with ADRs: yes (template + the decisions from step 1)
 ├── AGENTS.md, CLAUDE.md, README.md, CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md, BACKLOG.md
 ├── LICENSE (unless proprietary); with release-please also release-please-config.json, .release-please-manifest.json
-└── .env.example, .gitignore, .dockerignore, .editorconfig, .pre-commit-config.yaml
+└── .env.example, .gitignore, .dockerignore, .editorconfig
 ```
 
 Two ways to run it, and both must work:
@@ -52,7 +52,7 @@ Unattended (nobody to answer): the recommended API and UI library for what you k
 
 ### 2. Research current versions — every run
 
-Never take version numbers from this skill, from memory or from an older project. Look up the newest stable releases now: Python packages (`uv add` resolves, PyPI for supported Django/Python versions, procrastinate included), npm packages (`pnpm view <pkg> version` / `engines`, pnpm itself, VitePress), Docker images (`python` slim, Node LTS, Postgres major, `ghcr.io/astral-sh/uv`), tools in the image (supervisor, `postgresql-client-<major>`), CI (every action in the workflows with its newest release tag **and that tag's commit SHA**, `aquasec/trivy`, `rust-just`, `actionlint-py`, `zizmor`), image digests for every pinned image (ci.md section 2) and the pre-commit hook repos.
+Never take version numbers from this skill, from memory or from an older project. Look up the newest stable releases now: Python packages (`uv add` resolves, PyPI for supported Django/Python versions, procrastinate included), npm packages (`pnpm view <pkg> version` / `engines`, pnpm itself, VitePress), Docker images (`python` slim, Node LTS, Postgres major, `ghcr.io/astral-sh/uv`), tools in the image (supervisor, `postgresql-client-<major>`), CI (every action in the workflows with its newest release tag **and that tag's commit SHA**, `aquasec/trivy`, `rust-just`, `actionlint-py`, `zizmor`), and image digests for every pinned image (ci.md section 2).
 
 Then reconcile: the newest Python that the newest Django and every backend dependency support (with wheels for psycopg and argon2-cffi); the Node LTS that satisfies Vite's `engines`; an API library release that supports the chosen Django. No pre-releases. If a key dependency lags behind the newest Django, take the newest Django it supports and say so. Put a version table (component → version → why, if not the newest) in the report.
 
@@ -73,7 +73,7 @@ Read `references/frontend.md` (shared: pnpm, dev port and proxy, API client and 
 
 ### 5. Docker and environment
 
-Read `references/docker.md`; copy `assets/Dockerfile`, `compose.yml`, `compose.dev.yml`, `docker/*`, `.env.example`, `.dockerignore`, `.gitignore`, `.editorconfig`, `scripts/sync_env.py`, and fill the placeholders (researched versions and digests, project name, `<TIMEZONE>`). Keep the hardening of both containers — read-only root filesystem, no capabilities, unprivileged user, no setuid binaries, only `/data`, `/backups` (worker) and `/tmp` writable — supervisord as PID 1 of the app stopping it when a program keeps failing, and every runtime check in `docker/smoke-test`. `cp .env.example .env` so native verification works.
+Read `references/docker.md`; copy `assets/Dockerfile`, `compose.yml`, `compose.dev.yml`, `docker/*`, `.env.example`, `.dockerignore`, `.gitignore`, `.editorconfig`, `scripts/` (sync_env.py, check_changed.py), and fill the placeholders (researched versions and digests, project name, `<TIMEZONE>`). Keep the hardening of both containers — read-only root filesystem, no capabilities, unprivileged user, no setuid binaries, only `/data`, `/backups` (worker) and `/tmp` writable — supervisord as PID 1 of the app stopping it when a program keeps failing, and every runtime check in `docker/smoke-test`. `cp .env.example .env` so native verification works.
 
 ### 6. justfile, CI, releases and Dependabot
 
@@ -85,11 +85,11 @@ Read `references/docs.md` and copy `assets/docs/`; `<PNPM>` in `docs/package.jso
 
 ### 8. Repository files and README
 
-Read `references/repo-files.md`: VS Code tasks, AGENTS.md, pre-commit, license, CONTRIBUTING (with external contributors: Conventional Commits, DCO), SECURITY, Code of Conduct (with external contributors), issue and PR templates, CODEOWNERS, BACKLOG and what the README covers. Then `git init -b main` and a first commit, if git is available.
+Read `references/repo-files.md`: VS Code tasks, AGENTS.md, license, CONTRIBUTING (with external contributors: Conventional Commits, DCO), SECURITY, Code of Conduct (with external contributors), issue and PR templates, CODEOWNERS, BACKLOG and what the README covers. Then `git init -b main` and a first commit, if git is available.
 
 ### 9. Verify before you report
 
-Set `<CHECKLIST_VERSION>` and `<DATE>` in AGENTS.md's `## House defaults` section to the current checklist version and today, and `<RELEASES>` / `<CONTRIBUTIONS>` / `<ADRS>` to the answers from step 1; a new project starts with no deviations.
+Set `<PLUGIN_VERSION>` and `<DATE>` in AGENTS.md's `## House defaults` section to the version at the top of `references/checklist.md` and today, and `<RELEASES>` / `<CONTRIBUTIONS>` / `<ADRS>` to the answers from step 1; a new project starts with no deviations.
 
 ```bash
 bash <skill-dir>/scripts/verify_scaffold.sh <repo>            # leftovers, syntax, checklist (check_repo.py --new), `just check` (= CI)

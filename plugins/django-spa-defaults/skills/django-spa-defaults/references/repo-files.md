@@ -2,14 +2,13 @@
 
 ## 1. Files to copy and fill
 
-From `assets/`: `justfile`, `adr/` (only with ADRs: yes), `.vscode/`, `.claude/`, `.pre-commit-config.yaml`, `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `.github/ISSUE_TEMPLATE/`, `.github/pull_request_template.md`, `.github/CODEOWNERS`, and the license text if the license calls for it (section 2).
+From `assets/`: `justfile`, `adr/` (only with ADRs: yes), `.vscode/`, `.claude/`, `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`, `.github/ISSUE_TEMPLATE/`, `.github/pull_request_template.md`, `.github/CODEOWNERS`, and the license text if the license calls for it (section 2).
 
 - **`justfile`** — every command of the project, the one place: `<OPENAPI_EXPORT_COMMAND>` = the export command for the chosen API library (backend.md), writing to `../frontend/openapi.json`; `<DEV_PORT>`; `<project>`; `<ACTIONLINT>`, `<ZIZMOR>` (ci.md section 2). Recipes run in bash/zsh and, via `windows-shell`, in PowerShell; keep each line a plain command. CI and the VS Code tasks call recipes and nothing else, so a check is changed only here. Needs just ≥ 1.38 (`uv tool install rust-just`, `brew install just`, `winget install Casey.Just`).
 - **`.vscode/tasks.json`**: one task per everyday recipe (`just …`); AGENTS.md and the README refer to the labels.
 - **`.claude/launch.json`**: `<DEV_PORT>`; with React nothing else changes.
 - **`.vscode/extensions.json`**: keep the `[VUE]` line only for Vue, the `[TAILWIND]` line only with Tailwind.
 - **`AGENTS.md`**: `<API_LIBRARY>` (Django Ninja / Django REST framework), `<SCHEMA_DIR>` (`schemas` / `serializers`), `<FRONTEND>` (Vue 3 / React), `<UI_LIBRARY>`, `<DEV_PORT>`, the project name and one sentence on what the app does. Keep the `[VUE]` or `[REACT]` block of the frontend rules. Add project-specific rules (domain terms, date/time conventions, permissions model) as their own section. Every later session, human or agent, reads it first — keep it short and true.
-- **`.pre-commit-config.yaml`**: `<PRE_COMMIT_HOOKS>`, `<RUFF_PRE_COMMIT>` = researched tags.
 - **`CONTRIBUTING.md`**: `<LICENSE_ID>`; keep `[RELEASE_PLEASE]` or `[MANUAL_RELEASES]`, and `[EXTERNAL]` (pull requests welcome, Code of Conduct, DCO) or `[TEAM_ONLY]` (in active development: an IMPORTANT note that pull requests are not accepted for now and are closed without review; the steps stay, introduced as how a change gets in once they are) — section 4. Everything outside these blocks is the same in every project: keep the template's wording and only fill in names, so contributors meet the same text everywhere. Proprietary projects replace the License section with one sentence on who owns contributions.
 - **`CODE_OF_CONDUCT.md`**: only with external contributors (section 4). `<CONDUCT_EMAIL>` = a maintainer address the user names (ask; unattended: drop the email part, the private GitHub report stays).
 - **`SECURITY.md`**, issue forms (`bug_report.yml`, `feature_request.yml`, `config.yml` with `<owner>/<project>` for the advisory link), PR template, **`CODEOWNERS`** (`* @<owner>`).
@@ -35,7 +34,7 @@ Write a `README.md` (the user's language is fine):
 - what it is;
 - prerequisites (uv, Node, pnpm, just; Docker only for the image and the optional PostgreSQL);
 - first setup: `cp .env.example .env`, `just setup`, `just migrate` — SQLite, no database server; optionally `just db-up` + `DB_HOST=localhost` to run like CI;
-- `just` and its recipes (dev servers, `just check`, API types after API changes, migrations, translations), the VS Code tasks that call them, pre-commit install;
+- `just` and its recipes (dev servers, `just check`, API types after API changes, migrations, translations), the VS Code tasks that call them, `just check-changed` before a commit;
 - production: copy `compose.yml` + `.env` to the server, `docker compose up -d` (app + worker) → port 8080 behind a TLS proxy, `set_password`, updating with `docker compose pull` (pin a version with `APP_IMAGE=ghcr.io/<owner>/<project>:1.2`), `scripts/sync_env.py`, verifying the image with `gh attestation verify`;
 - backups: in the worker's `backups` volume, a manual dump (`docker compose exec worker …`), restore, copying them off the host;
 - releases: with release-please, Conventional Commits → release PR → tag and image (CONTRIBUTING.md); otherwise a pushed `v1.2.3` tag;

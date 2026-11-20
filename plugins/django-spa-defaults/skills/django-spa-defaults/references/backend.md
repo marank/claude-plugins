@@ -22,7 +22,7 @@ uv add "django[argon2]" "psycopg[binary]" gunicorn "procrastinate[django]" djang
                                    # supervisord is installed in the image, not here
 uv add django-ninja                # Ninja variant
 # or: uv add djangorestframework drf-spectacular   # DRF variant
-uv add --dev pytest pytest-django pytest-cov pytest-xdist factory-boy ruff mypy django-stubs deptry import-linter
+uv add --dev pytest pytest-django pytest-cov pytest-xdist factory-boy ruff mypy django-stubs deptry import-linter complexipy
 # DRF variant also: uv add --dev djangorestframework-stubs
 uv run django-admin startproject config .
 mkdir -p apps && touch apps/__init__.py
@@ -226,11 +226,16 @@ select = [
     "ERA",  # no commented-out code
     "N",    # naming conventions
     "S",    # security patterns (bandit)
+    "BLE",  # no blind `except Exception` that swallows errors
+    "TRY",  # exception handling: no `except: pass`, re-raise with context, …
+    "PERF", # slow patterns (building a list in a loop, …)
+    "FURB", # older, longer spellings of what the standard library does directly
 ]
 ignore = [
     "S603", "S607",  # subprocess with fixed argument lists (pg_dump, uv) is intended
     "RUF012",        # Django's class attributes (Meta.ordering, list_display) are lists by convention
     "N806",          # `User = get_user_model()` and similar inside functions
+    "TRY003",        # messages passed to the exception class are fine
 ]
 
 [tool.ruff.lint.mccabe]
@@ -285,6 +290,17 @@ show_missing = true
 [tool.mypy]
 plugins = ["mypy_django_plugin.main"]   # DRF: also "mypy_drf_plugin.main"
 strict = true
+# Checks against cases the types rule out (`if x is None` for a non-optional x, a branch
+# that can't run) are reported instead of kept "to be safe".
+warn_unreachable = true
+strict_equality_for_none = true
+enable_error_code = [
+    "redundant-expr",
+    "truthy-bool",          # `if obj:` on an object that is always true
+    "possibly-undefined",   # a variable only set in some branches
+    "ignore-without-code",  # `# type: ignore` names the error it silences
+    "exhaustive-match",     # a `match` over an enum or union misses a case
+]
 exclude = ["/migrations/"]
 
 [[tool.mypy.overrides]]
@@ -314,6 +330,8 @@ extend_exclude = [".*/tests/", "conftest\\.py", "scripts/"]
 # Used at runtime, never imported: DB driver (ENGINE string) and the WSGI server.
 DEP002 = ["psycopg", "gunicorn"]
 ```
+
+`strict = true` stays, and so do the three checks against impossible cases: delete such a check rather than silencing it — keep one only where data really comes from outside the types (a raw request body, an untyped library), with the reason in a comment. Cognitive complexity (how hard a function is to follow; nesting costs more than a flat list of cases) is limited to 15 by `complexipy` in `just check-backend`.
 
 `strict = true` stays; a third-party package without types gets a targeted override with `ignore_missing_imports = true`, never a looser global setting. `# type: ignore[code]` only with the reason next to it. Endpoints behind auth take a request type whose `user` is the project's `User` (e.g. `AuthedRequest` in `apps/core/api/security.py`), so mypy knows `request.user`.
 

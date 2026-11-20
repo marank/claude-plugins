@@ -11,6 +11,10 @@ All commands live in the `justfile` (`just` lists them); CI and the VS Code task
   (`backend/data/`), Vite :<DEV_PORT> → http://localhost:<DEV_PORT>. No job worker natively: jobs run
   in-process after the commit, periodic jobs (backups) don't run. `just db-up` + `DB_HOST=localhost`
   for PostgreSQL like CI.
+- Before every commit: `just check-changed` — lint, formatting and complexity of the changed files,
+  the type checks, the tests of the touched apps and those related to the changed frontend files,
+  and schema, migration, docs or workflow checks when those changed. No git hooks: run it yourself
+  (agents too) and fix what it reports before committing.
 - `just check` runs everything CI runs and must pass before a push. A check is added or changed in
   the justfile only — never as an extra command in a workflow.
 - `just api-types` after any API change (schema → `frontend/openapi.json` →
@@ -24,8 +28,8 @@ All commands live in the `justfile` (`just` lists them); CI and the VS Code task
 <!-- [/] -->
 - Dependabot proposes updates weekly, including the pinned commit SHAs of actions and the image
   digests. Not covered: `TRIVY_IMAGE`/`POSTGRES_IMAGE` in `build.yaml`, `SUPERVISOR_VERSION`/`PG_MAJOR`
-  in the Dockerfile, the actionlint/zizmor versions in the justfile, `rust-just` in the workflows,
-  pre-commit hooks (by hand: `uv tool run pre-commit autoupdate`). Version updates wait 7 days
+  in the Dockerfile, the actionlint/zizmor versions in the justfile, `rust-just` in the workflows.
+  Version updates wait 7 days
   (cooldown); security updates don't.
 - GitHub Actions: every `uses:` pinned to a full commit SHA with the version as comment, jobs ask
   only for the permissions they need, checkouts without persisted credentials; `just check-workflows`
@@ -164,7 +168,7 @@ All commands live in the `justfile` (`just` lists them); CI and the VS Code task
 
 ## House defaults
 
-Checked against checklist <CHECKLIST_VERSION> (<DATE>). Accepted deviations and settled judgements,
+Checked against django-spa-defaults <PLUGIN_VERSION> (<DATE>). Accepted deviations and settled judgements,
 one line each as `- ID: decision and reason`, or `- ID [path, …]: …` for exceptions in some places only
 (IDs from the project-defaults checklist); the review does not report these again:
 

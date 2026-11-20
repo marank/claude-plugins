@@ -82,13 +82,18 @@ compile-messages:
 # Everything CI checks; must pass before a push
 check: check-backend check-deploy check-frontend check-docs check-workflows
 
-# ruff, mypy, deptry, import layers, licenses, migrations, Django checks, translations, OpenAPI, tests
+# Before a commit: only what the changed files can break (see scripts/check_changed.py)
+check-changed:
+    uv run --no-project --python ">=3.11" scripts/check_changed.py
+
+# ruff, mypy, cognitive complexity, deptry, import layers, licenses, migrations, Django checks, translations, OpenAPI, tests
 [working-directory: 'backend']
 check-backend:
     uv sync --locked
     uv run ruff check --output-format=concise .
     uv run ruff format --check .
     uv run mypy .
+    uv run complexipy apps config
     uv run deptry .
     uv run lint-imports
     uv run python scripts/check_licenses.py

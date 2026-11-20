@@ -75,6 +75,7 @@
       "group": { "kind": "test", "isDefault": true },
       "problemMatcher": []
     },
+    { "label": "Check: changed", "detail": "Before a commit: only what the changed files can break", "type": "shell", "command": "just check-changed", "problemMatcher": [] },
     { "label": "Check: backend", "type": "shell", "command": "just check-backend", "problemMatcher": [] },
     { "label": "Check: frontend", "type": "shell", "command": "just check-frontend", "problemMatcher": [] },
     {

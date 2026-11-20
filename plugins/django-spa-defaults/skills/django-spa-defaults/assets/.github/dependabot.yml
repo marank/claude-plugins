@@ -4,8 +4,8 @@
 # updates are not delayed. Pinned digests (Dockerfile) and commit SHAs (workflows) are updated
 # together with their tag. Not covered (bump by hand, see AGENTS.md): the images started
 # with `docker run` in build.yaml (TRIVY_IMAGE, POSTGRES_IMAGE), the tool versions in the
-# justfile (actionlint, zizmor) and the workflows (just), pnpm's packageManager field if
-# Dependabot leaves it alone, and the pre-commit hooks (deliberately by hand: `uv tool run pre-commit autoupdate`).
+# justfile (actionlint, zizmor) and the workflows (just), and pnpm's packageManager field
+# if Dependabot leaves it alone.
 version: 2
 updates:
   - package-ecosystem: uv

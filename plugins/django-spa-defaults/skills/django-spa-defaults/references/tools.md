@@ -14,15 +14,18 @@ For explaining a tool when the user asks ("what is zizmor?", "why just?", "expla
 - **uv** — installs Python and the backend's packages and runs commands in the project's environment; one fast tool instead of pip, venv and pyenv. Writes `uv.lock`, so everyone gets the same versions. *Alternatives*: poetry, pdm — fine in a repo that already uses them.
 - **pnpm** — the frontend's package manager: like npm, but stricter (a package can only import what it declares) and saving disk space. Its version lives in `packageManager` in `package.json`. *Alternatives*: npm (comes with Node, no extra install), yarn, bun.
 - **corepack** — a helper that used to come with Node and installed pnpm or yarn in the version from `packageManager`. Node 25 and newer no longer ship it, because it stayed experimental and Node didn't want to be responsible for package managers it doesn't maintain. Install pnpm with `npm install -g` instead, or install corepack itself first (CI-09).
+- **`just check-changed`** — the checks before a commit, only for what the changed files can break (changed files linted, touched apps tested, related frontend tests); the full `just check` before a push. Deliberately no git hooks (pre-commit): they slow every commit and get skipped anyway.
 - **just** — a command runner: `just check`, `just dev`. The one place for project commands, so CI, editor tasks and people run the same thing. *Alternatives*: make (everywhere already, but made for building files and quirky as a command runner), Task, mise tasks.
-- **pre-commit** — runs quick checks (ruff, trailing whitespace) on each `git commit`, so obvious problems never reach CI. Optional for contributors; CI checks the same anyway.
 - **release-please** — reads the commit titles (Conventional Commits: `feat: …`, `fix: …`) and keeps a release pull request with the next version number and the changelog up to date; merging it publishes the release. Starts at `0.1.0` with `initial-version` (REPO-17). *Alternative*: releases by hand (tag + GitHub release) — simpler for projects that rarely release.
 - **DCO GitHub App** — checks that every commit in a pull request carries a `Signed-off-by:` line, the contributor's statement that they may contribute the code. Only for projects with outside contributors.
 
 ## 2. Python backend
 
-- **ruff** — linter and formatter in one, very fast; replaces flake8, isort, black and many plugins. Finds bugs (unused variables, risky patterns), not just style. *Alternative*: flake8 with plugins in older repos.
+- **ruff** — linter and formatter in one (with `BLE` and `TRY` it also reports swallowed errors such as `except Exception: pass`; `PERF` slow patterns; `FURB` longer spellings of what the standard library does directly), very fast; replaces flake8, isort, black and many plugins. Finds bugs (unused variables, risky patterns), not just style. *Alternative*: flake8 with plugins in older repos.
 - **mypy** with **django-stubs** — checks the type hints, so a wrong argument or a possibly-missing value shows up before it runs; the stubs teach it Django's models and querysets. *Alternatives*: pyright or basedpyright (faster, what VS Code uses internally) with django-types.
+- **mypy `warn_unreachable` and friends** — report checks the types make impossible (`if user is None` when `user` can't be None, a branch that can never run), the typical "just to be safe" code that makes functions longer without making them safer.
+- **mypy error codes `truthy-bool`, `possibly-undefined`, `exhaustive-match`, `ignore-without-code`** — likely bugs `strict` doesn't catch: `if obj:` on something always true, a variable set in only one branch, a `match` that forgets a new enum value, a blanket `# type: ignore`.
+- **complexipy** — measures cognitive complexity: how hard a function is to follow. Unlike plain branch counting, nesting costs more than a flat list of cases, so a long but flat `match` passes and three nested `if`s don't. Limit 15.
 - **import-linter** — enforces which code may import which (API → services → selectors → models; `core` imports no other app), so the structure doesn't erode quietly. *Alternative*: tach.
 - **pytest** with **pytest-cov** — runs the tests and measures how much code they cover; the build fails below the agreed share.
 - **deptry** — finds packages that are installed but unused, or used but not declared. *Alternative*: fawltydeps.
@@ -55,6 +58,11 @@ For explaining a tool when the user asks ("what is zizmor?", "why just?", "expla
 - **`allValues`** — our small helper that lists an enum's values so that a new value in the backend fails the type check until the frontend handles it.
 - **vue-i18n** / **react-i18next** — translations (English and German). *Alternatives*: Lingui, FormatJS.
 - **ESLint** — finds bugs and enforces rules in TypeScript and Vue/React code; with us also complexity, nesting depth and import boundaries. *Alternatives*: oxlint (much faster, same rule names), Biome (linter and formatter in one).
+- **`no-unnecessary-condition`** (typescript-eslint) — the frontend counterpart of mypy's unreachable check: reports `if (x)` when the types say `x` is always set. Needs type-aware linting.
+- **`no-floating-promises`, `no-misused-promises`** — a promise nobody awaits or catches, so its error vanishes (e.g. an `async` function as a click handler).
+- **`switch-exhaustiveness-check`** — a `switch` over a union must handle every member, so a new value from the API fails the build instead of falling through.
+- **`prefer-nullish-coalescing`** — `??` instead of `||` for defaults: `count || 10` turns a real `0` into 10, `count ?? 10` doesn't.
+- **eslint-plugin-sonarjs** — here only for `cognitive-complexity`, the frontend counterpart of complexipy.
 - **Prettier** — formats the code, so nobody discusses formatting.
 - **Vitest** — runs the frontend tests, using the same setup as Vite. *Alternative*: Jest in older projects.
 - **size-limit** — fails the build when the shipped JavaScript grows past a set size. *Alternative*: bundlewatch.

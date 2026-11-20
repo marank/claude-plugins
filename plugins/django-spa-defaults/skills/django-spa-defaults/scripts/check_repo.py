@@ -24,6 +24,7 @@ from pathlib import Path
 SKILL_DIR = Path(__file__).resolve().parents[1]
 CHECKLIST = SKILL_DIR / "references" / "checklist.md"
 ID_RE = r"[A-Z]+-\d{2}"
+PLUGIN = "django-spa-defaults"
 TASK_FILES = ("justfile", "Makefile", "Taskfile.yml", "Taskfile.yaml", "mise.toml")
 JS_LOCKS = {"pnpm": "pnpm-lock.yaml", "npm": "package-lock.json", "yarn": "yarn.lock", "bun": "bun.lock", "bun ": "bun.lockb"}
 PY_LOCKS = ("uv.lock", "poetry.lock", "pdm.lock")
@@ -53,13 +54,13 @@ class Result:
 
 def load_checklist() -> tuple[str, list[Item], dict[str, list[str]], set[str]]:
     text = CHECKLIST.read_text(encoding="utf-8")
-    version = re.search(r"^Checklist version: (\S+)", text, re.M).group(1)
+    version = re.search(r"^Version: (\d+\.\d+\.\d+)", text, re.M).group(1)
     items = []
     for m in re.finditer(rf"^\| ({ID_RE}) \| (\w+) \| (\w+) \| (\w+) \| (.+?) \| (.+) \|$", text, re.M):
         items.append(Item(*m.groups()))
     added: dict[str, list[str]] = {}
     retired: set[str] = set()
-    for m in re.finditer(r"^- \*\*(\d+\.\d+)\*\*[^\n]*", text, re.M):
+    for m in re.finditer(r"^- \*\*(\d+\.\d+\.\d+)\*\*[^\n]*", text, re.M):
         new_part, _, retired_part = m.group(0).partition("retired")
         added[m.group(1)] = re.findall(ID_RE, new_part)
         retired |= set(re.findall(ID_RE, retired_part))
@@ -137,6 +138,11 @@ class Repo:
     def tasks_text(self) -> str:
         """The task runner's file, whichever it is (just, make, Task, mise)."""
         return "".join(self.read(f) for f in TASK_FILES)
+
+    def frontend_lint_text(self) -> str:
+        files = (self.files("frontend/eslint.config.*") + self.files("frontend/.oxlintrc.json")
+                 + self.files("frontend/biome.json*"))
+        return "".join(p.read_text(encoding="utf-8", errors="replace") for p in files)
 
     def package_manager(self) -> str | None:
         """The frontend's package manager, by its lock file."""
@@ -826,6 +832,96 @@ def repo_18(r: Repo) -> Result:
                    else [f"{folder}/ has no template (0000-template.md)"])
 
 
+def be_16(r: Repo) -> Result:
+    tool = r.pyproject().get("tool", {})
+    for name in ("pyright", "basedpyright"):
+        conf = tool.get(name) or {}
+        if conf:  # strict mode reports unnecessary comparisons and conditions
+            return verdict([] if conf.get("typeCheckingMode") in ("strict", "all", "recommended")
+                           else [f"{name} is not in strict mode"])
+    mypy = tool.get("mypy", {})
+    codes = mypy.get("enable_error_code", [])
+    codes = codes.split(",") if isinstance(codes, str) else codes
+    problems = [f"mypy sets no `{o} = true`" for o in ("warn_unreachable", "strict_equality_for_none")
+                if mypy.get(o) is not True]
+    if "redundant-expr" not in [c.strip() for c in codes]:
+        problems.append("mypy does not enable the error code redundant-expr")
+    return verdict(problems)
+
+
+def be_17(r: Repo) -> Result:
+    m = re.search(r"complexipy[^\n]*?(?:-mx|--max-complexity-allowed)[ =](\d+)", r.tasks_text() + r.workflows_text())
+    if "complexipy" not in r.tasks_text() + r.workflows_text() + r.read("backend/pyproject.toml"):
+        return Result("fail", ["the checks don't limit cognitive complexity (complexipy)"])
+    return verdict([f"complexipy allows {m.group(1)}, more than 15"] if m and int(m.group(1)) > 15 else [])
+
+
+def be_18(r: Repo) -> Result:
+    lint = r.pyproject().get("tool", {}).get("ruff", {})
+    lint = {**lint, **lint.get("lint", {})}
+    select = set(lint.get("select", [])) | set(lint.get("extend-select", []))
+    if "ALL" in select:
+        return Result("pass")
+    return verdict([f"ruff does not select {c}" for c in ("BLE", "TRY") if c not in select])
+
+
+def fe_08(r: Repo) -> Result:
+    text = r.frontend_lint_text()
+    ok = re.search(r"no-unnecessary-condition|strict-?TypeChecked|strict-type-checked", text, re.I)
+    return verdict([] if ok else ["the linter does not report unnecessary conditions (no-unnecessary-condition)"])
+
+
+def fe_09(r: Repo) -> Result:
+    text = r.frontend_lint_text()
+    ok = re.search(r"cognitive-complexity|noExcessiveCognitiveComplexity", text)
+    if not ok:
+        return Result("fail", ["the linter does not limit cognitive complexity (sonarjs, Biome)"])
+    m = re.search(r"cognitive-complexity['\"]?\s*:\s*\[\s*['\"]\w+['\"]\s*,\s*(\d+)", text)
+    return verdict([f"cognitive complexity limit is {m.group(1)}, more than 15"] if m and int(m.group(1)) > 15 else [])
+
+
+def be_19(r: Repo) -> Result:
+    tool = r.pyproject().get("tool", {})
+    for name in ("pyright", "basedpyright"):
+        conf = tool.get(name) or {}
+        if conf:
+            return verdict([] if conf.get("typeCheckingMode") in ("strict", "all", "recommended")
+                           else [f"{name} is not in strict mode"])
+    codes = tool.get("mypy", {}).get("enable_error_code", [])
+    codes = [c.strip() for c in (codes.split(",") if isinstance(codes, str) else codes)]
+    return verdict([f"mypy does not enable the error code {c}" for c in
+                    ("truthy-bool", "possibly-undefined", "exhaustive-match", "ignore-without-code") if c not in codes])
+
+
+def be_20(r: Repo) -> Result:
+    lint = r.pyproject().get("tool", {}).get("ruff", {})
+    lint = {**lint, **lint.get("lint", {})}
+    select = set(lint.get("select", [])) | set(lint.get("extend-select", []))
+    if "ALL" in select:
+        return Result("pass")
+    return verdict([f"ruff does not select {c}" for c in ("PERF", "FURB") if c not in select])
+
+
+def lint_rules(r: Repo, rules: dict[str, str]) -> Result:
+    """Each rule passes when named in the lint config or included by the preset in the value."""
+    text = r.frontend_lint_text()
+    return verdict([f"the linter does not enable {rule}" for rule, preset in rules.items()
+                    if rule not in text and not (preset and re.search(preset, text))])
+
+
+def fe_10(r: Repo) -> Result:
+    typed = r"(recommended|strict)-?TypeChecked|(recommended|strict)-type-checked"
+    return lint_rules(r, {"no-floating-promises": typed, "no-misused-promises": typed})
+
+
+def fe_11(r: Repo) -> Result:
+    return lint_rules(r, {"switch-exhaustiveness-check": ""})
+
+
+def fe_12(r: Repo) -> Result:
+    return lint_rules(r, {"prefer-nullish-coalescing": r"stylistic-?TypeChecked|stylistic-type-checked"})
+
+
 CHECKS = {name.upper().replace("_", "-"): fn for name, fn in globals().copy().items()
           if re.fullmatch(r"(repo|be|sec|docker|ci|fe)_\d{2}", name)}
 
@@ -846,7 +942,7 @@ def house_defaults(r: Repo) -> tuple[str | None, dict[str, Decision]]:
     if not m:
         return None, {}
     section = re.sub(r"<!--.*?-->", "", m.group(1), flags=re.S)  # examples in comments don't count
-    version = re.search(r"checklist (\d+\.\d+)", section)
+    version = re.search(rf"{PLUGIN} (\d+\.\d+\.\d+)", section)  # "Checked against django-spa-defaults 1.2.0"
     decisions = {}
     for d in re.finditer(rf"^\s*[-*]\s*\**({ID_RE})\**(?:\s*\[([^\]]+)\])?\s*[:—–-]\s*(.+)$", section, re.M):
         paths = [p.strip().strip("`") for p in (d.group(2) or "").split(",") if p.strip()]
@@ -919,21 +1015,23 @@ def main() -> int:
              for i in sorted(set(accepted) & retired)]
     notes += [f"AGENTS.md lists unknown item {i}" for i in sorted(set(accepted) - known - retired)]
     if checked_against is None:
-        notes.append("AGENTS.md has no '## House defaults' section: first review against the checklist.")
+        notes.append("AGENTS.md records no review yet ('Checked against django-spa-defaults X' in its "
+                     "'## House defaults' section): first review against all items.")
     elif checked_against != version:
         newer = [v for v in added if tuple(map(int, v.split("."))) > tuple(map(int, checked_against.split(".")))]
         new_ids = sorted({i for v in newer for i in added[v]})
-        if any(not added[v] for v in newer):  # a version without IDs (the first one) brings all items
+        if "1.0.0" in newer:  # the first version brings all items
             new_ids = ["all items"]
-        notes.append(f"Checklist changed since the last review ({checked_against} -> {version}); "
-                     f"new or changed items: {', '.join(new_ids) or 'none'}.")
+        if new_ids:  # plugin releases without checklist changes need no new review
+            notes.append(f"The checklist changed since the last review ({PLUGIN} {checked_against} -> {version}); "
+                         f"new or changed items: {', '.join(new_ids)}.")
 
     failing = [row for row in rows if row["status"] == "fail"]
     if "--json" in sys.argv:
-        print(json.dumps({"checklist": version, "checked_against": checked_against, "notes": notes,
+        print(json.dumps({"plugin": PLUGIN, "version": version, "checked_against": checked_against, "notes": notes,
                           "items": rows}, indent=2, ensure_ascii=False))
     else:
-        print(f"House defaults checklist {version} — {repo.root.name}")
+        print(f"{PLUGIN} {version} — {repo.root.name}")
         for note in notes:
             print(f"note: {note}")
         # Passed and not applicable items only by ID; the rule text only where something is open.
