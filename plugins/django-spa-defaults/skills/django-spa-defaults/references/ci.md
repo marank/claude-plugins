@@ -33,7 +33,6 @@
 - `ARG SUPERVISOR_VERSION` and `ARG PG_MAJOR` in the Dockerfile (PG_MAJOR follows compose's Postgres major).
 - `<ACTIONLINT>` and `<ZIZMOR>` in the justfile, `rust-just==<JUST>` in the workflows.
 - pnpm's `packageManager` field: check after the first weeks whether Dependabot opens PRs for it; if not, `pnpm self-update` and commit.
-- pre-commit hook revisions: deliberately by hand, `uv tool run pre-commit autoupdate` now and then (Dependabot could, but the hooks only run locally).
 
 ## 2. Placeholders
 

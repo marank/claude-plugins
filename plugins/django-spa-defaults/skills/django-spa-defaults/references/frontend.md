@@ -159,6 +159,8 @@ pnpm may block dependency build scripts (e.g. esbuild) until approved; allow the
 Limits on tangle, not on length: a long form or table component is fine, a function with twenty branches or five levels of nesting is not, and neither is shared code that reaches into a page. Append to the scaffolder's ESLint flat config (`eslint.config.ts`), keeping its own blocks — at the very end, after `eslint-plugin-oxlint` too, which would otherwise switch these rules off in favour of oxlint's defaults:
 
 ```ts
+import sonarjs from 'eslint-plugin-sonarjs'
+
 const apiClient = { group: ['@/api/client', '**/api/client'], message: 'Call the area modules in src/api/<area>.ts.' }
 const pages = { group: ['@/views/*', '@/pages/*', '**/views/*', '**/pages/*'], message: 'Shared code must not depend on a page.' }
 // utils may still import the generated payload types (@/api/types).
@@ -169,9 +171,16 @@ export default [
   {
     name: 'project/readability',
     files: ['src/**/*.{ts,tsx,vue}'],
+    plugins: { sonarjs },
     rules: {
       complexity: ['error', 15],
+      'sonarjs/cognitive-complexity': ['error', 15],
       'max-depth': ['error', 4],
+      '@typescript-eslint/no-unnecessary-condition': 'error',
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
+      '@typescript-eslint/switch-exhaustiveness-check': 'error',
+      '@typescript-eslint/prefer-nullish-coalescing': 'error',
       'no-restricted-imports': ['error', { patterns: [apiClient] }],
     },
   },
@@ -189,6 +198,8 @@ export default [
   },
 ]
 ```
+
+`sonarjs/cognitive-complexity` needs `eslint-plugin-sonarjs` (`pnpm add -D eslint-plugin-sonarjs`); it measures how hard a function is to follow — nesting costs more than a flat list of cases. `no-unnecessary-condition` reports checks the types make pointless (`if (user)` when `user` can't be null) and needs type-aware linting: Vue — `vueTsConfigs.recommendedTypeChecked` instead of `vueTsConfigs.recommended` in `defineConfigWithVueTs`; React — `tseslint.configs.recommendedTypeChecked` with `languageOptions: { parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname } }`. The other type-aware rules: `no-floating-promises` and `no-misused-promises` report promises nobody awaits or catches (errors would vanish), `switch-exhaustiveness-check` makes a `switch` over a union handle every member (a new API enum value then fails the build, like `allValues`), `prefer-nullish-coalescing` asks for `??` instead of `||`, so `0` and `""` aren't replaced by the default. Delete an unnecessary check rather than disabling the rule; keep one only where data comes from outside the types, with an `eslint-disable-next-line` and the reason.
 
 Deliberately not used: `max-lines`, `max-lines-per-function`, `max-statements`, `max-params` — they force splits that make code harder to follow. In `tsconfig.app.json` set `"noUncheckedIndexedAccess": true` (index access may be `undefined` until checked); in a new project it costs little and catches real bugs.
 

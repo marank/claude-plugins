@@ -1,6 +1,6 @@
 # House defaults checklist
 
-Checklist version: 1.9
+Version: 1.1.0 — the plugin's version (`django-spa-defaults`). A repo records the version it was last checked against in AGENTS.md.
 
 The norm for **existing repositories**: a repo meets the house defaults when every item below either passes or is listed as an accepted deviation in the repo's `AGENTS.md`. Only these items produce findings. The other references describe *how* to build things for a new project; when reviewing they are a lookup for fixing an item, never a source of extra findings.
 
@@ -31,7 +31,7 @@ Each item is one decision, so accepting it can't hide an unrelated problem. Item
 | REPO-16 | should | all | auto | The README has a `## Contributing` section in the template's words for the recorded mode (team only: pull requests are not accepted yet; external: pull requests are welcome) that points to CONTRIBUTING.md. | — |
 | REPO-17 | should | all | auto | With release-please and no release yet (manifest at `0.0.0`), the first release is `0.1.0` (`"initial-version": "0.1.0"`); release-please would otherwise open it as `1.0.0`. | **release-please** |
 | REPO-18 | should | all | auto | ADRs as recorded in AGENTS.md (`- ADRs: yes` or `no`); no line means no ADRs and nothing to check. With yes, `adr/` exists with its template. An `adr/` folder without the line is recorded as yes, without asking. | **the skill's template (Nygard/MADR style)** · adr-tools, MADR |
-| REPO-12 | should | all | auto | `SECURITY.md` says how to report a vulnerability privately. (`CODE_OF_CONDUCT.md` only once people outside the team contribute; not checked.) | **GitHub private vulnerability reporting** · a security mail address |
+| REPO-12 | should | all | auto | `SECURITY.md` says how to report a vulnerability privately. | **GitHub private vulnerability reporting** · a security mail address |
 
 ## Backend
 
@@ -51,6 +51,11 @@ Each item is one decision, so accepting it can't hide an unrelated problem. Item
 | BE-13 | should | all | judge | Mails and other slow side effects are deferred as jobs, not sent inside the request. The script lists candidate lines; a line is a finding only if it runs inside a request. | **procrastinate** (PostgreSQL) · Django's `django.tasks` once a backend matches procrastinate; Celery, Dramatiq, django-q2, RQ, Huey |
 | BE-14 | should | all | judge | Writes with business rules or side effects (other models, notifications, events, audit entries) go through `services/`; a plain save of the endpoint's own object with no further effect may stay in the API module. The script lists candidate lines; a line is a finding only if it writes and something else should happen with it. | — |
 | BE-15 | should | all | auto | If the backend speaks German (`backend/locale/de` exists), the translation check runs in `check-backend`; otherwise the backend is English only. | **Django's makemessages/compilemessages + the template's check** |
+| BE-16 | should | all | auto | The type checker reports checks against cases the types rule out (unreachable branches, `is None` on a value that can't be None, always-true operands). | **mypy with `warn_unreachable`, `strict_equality_for_none`, `redundant-expr`** · pyright or basedpyright in strict mode |
+| BE-17 | should | all | auto | The checks limit cognitive complexity (how hard a function is to follow) to at most 15 per function. | **complexipy** |
+| BE-18 | should | all | auto | The linter reports swallowed errors: blind `except Exception`, `except: pass` and the like. | **ruff `BLE` and `TRY`** |
+| BE-19 | should | all | auto | The type checker also reports truthiness checks on always-true objects, variables set only in some branches, a `match` that misses a case, and `type: ignore` without an error code. | **mypy error codes `truthy-bool`, `possibly-undefined`, `exhaustive-match`, `ignore-without-code`** · pyright or basedpyright in strict mode |
+| BE-20 | should | all | auto | The linter reports slow patterns and longer spellings of what the standard library does directly. | **ruff `PERF` and `FURB`** |
 
 ## Security
 
@@ -97,16 +102,15 @@ Each item is one decision, so accepting it can't hide an unrelated problem. Item
 | FE-05 | should | all | auto | Frontend coverage thresholds are at least 90/90/85/85 (lines/statements/functions/branches). | **Vitest** · Jest |
 | FE-06 | should | new | auto | `noUncheckedIndexedAccess` is on. | — |
 | FE-07 | should | new | auto | The API client is typed from the generated schema. | **openapi-fetch** (with React: openapi-react-query) · orval or @hey-api clients |
+| FE-08 | should | all | auto | The linter reports conditions the types make unnecessary. | **`@typescript-eslint/no-unnecessary-condition`** (type-aware) · oxlint with type-aware rules |
+| FE-09 | should | all | auto | The linter limits cognitive complexity to at most 15 per function. | **`sonarjs/cognitive-complexity`** · Biome `noExcessiveCognitiveComplexity` |
+| FE-10 | should | all | auto | The linter reports promises nobody awaits or catches. | **`@typescript-eslint/no-floating-promises` and `no-misused-promises`** (both in `recommendedTypeChecked`) |
+| FE-11 | should | all | auto | A `switch` over a union type must handle every member. | **`@typescript-eslint/switch-exhaustiveness-check`** |
+| FE-12 | should | all | auto | Defaults use `??` rather than the or-operator, so `0` and `""` are kept. | **`@typescript-eslint/prefer-nullish-coalescing`** (in `stylisticTypeChecked`) |
 
 ## Changelog
 
-- **1.9** (2026-11-20): new REPO-19 (`.gitattributes` with LF line endings).
-- **1.8** (2026-11-20): new REPO-18 (ADRs only when the project decides on them); retired REPO-08 (`adr/` in every new project).
-- **1.7** (2026-11-20): new REPO-17 (release-please starts at 0.1.0).
-- **1.6** (2026-11-20): new CI-09 (package manager version in one place; Node 25+ ships without corepack); widened to goals with example tools: REPO-03, REPO-06, REPO-10, BE-05, BE-06, BE-07, BE-08, SEC-02, SEC-04, SEC-06, CI-04, CI-05, FE-01, FE-04, FE-05, FE-07, DOCKER-08 (the Tools column).
-- **1.5** (2026-11-20): new REPO-16 (the README's Contributing section in the same words).
-- **1.4** (2026-11-20): new REPO-15 (CONTRIBUTING.md in the template's wording, two modes).
-- **1.3** (2026-11-20): new REPO-13, REPO-14 (releases and contributions as recorded project decisions, asked once).
-- **1.2** (2026-11-20): new REPO-10, REPO-11, REPO-12, SEC-07, DOCKER-08, BE-15 (goals instead of one tool each; backend German only when needed); FE-03 is `should`; retired REPO-04 (named tools), REPO-09 (SECURITY.md and Code of Conduct together), SEC-03 (nginx-only rate limit), DOCKER-05 (separate worker service only), DOCKER-07 (arm64, now a per-project decision), CI-07 (release-please, now only for projects with external contributors).
-- **1.1** (2026-11-20): new BE-14 (service rule only for writes with rules or side effects); retired BE-12 (all writes through services), DOCKER-02 (port binding is the operator's choice).
-- **1.0** (2026-11-20): first version.
+Only versions that change items are listed; a plugin release without an entry leaves the checklist as it was.
+
+- **1.1.0** (2026-11-21): new REPO-19 (`.gitattributes` with LF line endings).
+- **1.0.0** (2026-11-21): first published version, all items.

@@ -10,12 +10,12 @@ Don't scaffold over an existing repo. Bring it in line against `references/check
 4. **Judge the open `judge` items** from the candidate lines the script lists, by the item's criterion only. A finding needs a clear violation; when in doubt, it passes. Something that breaks the criterion for a stated, good reason (a comment in the code, an ADR) is not a pass: report it as a decision to record, with the reason, so the next run doesn't judge it again and maybe differently.
 5. **Observations outside the checklist**: only a real bug or security risk you came across, at most three, marked as observations. No style remarks, no "could also" suggestions.
 6. **Report** in the user's language:
-   - first line: checklist version, open items (must / should, judge findings included, so the numbers add up), accepted and settled counts;
+   - first line: the plugin version, open items (must / should, judge findings included, so the numbers add up), accepted and settled counts;
    - the open items, `must` first, each with the script's details and the effort (cheap and safe / needs care — data migrations, a CI or framework switch);
    - judge findings, then observations;
-   - if nothing is open: "Meets the house defaults (checklist X) — nothing to do." and stop there.
+   - if nothing is open: "Meets the house defaults (django-spa-defaults X) — nothing to do." and stop there.
    The script's notes say when the checklist changed since the last review; then name the new items.
-7. **Ask per open item**: fix it, or accept it as a deviation with a reason. Write the decisions into AGENTS.md's `## House defaults` section and set "Checked against checklist X (date)":
+7. **Ask per open item**: fix it, or accept it as a deviation with a reason. Write the decisions into AGENTS.md's `## House defaults` section and set "Checked against django-spa-defaults X (date)" (X: the version at the top of the checklist):
    - `- ID: decision and reason` for the whole item (settled judge items the same way);
    - `- ID [path, path]: decision and reason` when only some places are exceptions (e.g. a generic CRUD layer) — findings elsewhere keep showing;
    - something that can't be fixed in one go (coverage, many endpoints to move) is recorded as a deviation with today's floor and the plan; once it passes, the script reports "accepted, no longer needed" — then delete the line;
@@ -25,4 +25,4 @@ Don't scaffold over an existing repo. Bring it in line against `references/check
 
 `--full` ignores the recorded list and re-checks everything; use it only when the user asks for a full re-review. `--json` gives the result for further processing.
 
-**Maintaining the checklist**: items name a goal; tools go in the Tools column as examples (recommended first). A new, stricter or different rule gets a new ID; a rule that only widens (more tools pass, nothing that passed fails) keeps its ID. Either way it gets a changelog line naming it, and a version bump; `check_repo.py` gets the matching check (or the item is `judge`). Each item is one decision, so accepting it can't hide an unrelated problem. Without a version bump, repos reviewed before don't see the rule.
+**Maintaining the checklist**: its version is the plugin's version — bump `Version:` at the top of the checklist together with `.claude-plugin/plugin.json` (and the marketplace entry); only a release that changes items gets a changelog line. items name a goal; tools go in the Tools column as examples (recommended first). A new, stricter or different rule gets a new ID; a rule that only widens (more tools pass, nothing that passed fails) keeps its ID. Either way it gets a changelog line naming it, and a version bump; `check_repo.py` gets the matching check (or the item is `judge`). Each item is one decision, so accepting it can't hide an unrelated problem. Without a version bump, repos reviewed before don't see the rule.

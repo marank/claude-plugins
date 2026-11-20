@@ -21,7 +21,7 @@ step() { echo; echo "=== $1"; }
 fail() { echo "FAIL: $1"; failures+=("$1"); }
 
 step "Template leftovers"
-leftovers=$(grep -rnE '<(project|Project|PG_MAJOR|NODE_LTS|PYTHON|UV|PNPM|PNPM_INSTALL|DEBIAN|TRIVY|TIMEZONE|LANG|UNAUTHENTICATED_STATUS|OPENAPI_EXPORT_COMMAND|DEV_PORT|CHECKOUT|SUPERVISOR|owner|API_LIBRARY|UI_LIBRARY|SCHEMA_DIR|PRE_COMMIT_HOOKS|RUFF_PRE_COMMIT|LICENSE_ID|FRONTEND|SHA|DIGEST|VERSION|ACTIONLINT|ZIZMOR|JUST|CONDUCT_EMAIL|CHECKLIST_VERSION|DATE|RELEASES|CONTRIBUTIONS|ADRS)>|\[(NINJA|DRF|I18N|DOCS|VUE|REACT|TAILWIND|RELEASE_PLEASE|MANUAL_RELEASES|EXTERNAL|TEAM_ONLY|BACKEND_DE|BACKEND_EN|ADRS|ARM64|/)\]|Template notes for the skill' \
+leftovers=$(grep -rnE '<(project|Project|PG_MAJOR|NODE_LTS|PYTHON|UV|PNPM|DEBIAN|TRIVY|TIMEZONE|UNAUTHENTICATED_STATUS|OPENAPI_EXPORT_COMMAND|DEV_PORT|SUPERVISOR|owner|API_LIBRARY|UI_LIBRARY|SCHEMA_DIR|LICENSE_ID|FRONTEND|SHA|DIGEST|VERSION|ACTIONLINT|ZIZMOR|JUST|CONDUCT_EMAIL|PLUGIN_VERSION|DATE|RELEASES|CONTRIBUTIONS|ADRS)>|\[(NINJA|DRF|DOCS|VUE|REACT|TAILWIND|RELEASE_PLEASE|MANUAL_RELEASES|EXTERNAL|TEAM_ONLY|BACKEND_DE|BACKEND_EN|ADRS|ARM64|/)\]|Template notes for the skill' \
   --exclude-dir=node_modules --exclude-dir=.venv --exclude-dir=.git . || true)
 [ -n "$leftovers" ] && { echo "$leftovers"; fail "template placeholders left"; } || echo "none"
 if grep -rn "django-insecure" backend/config/settings.py; then fail "generated insecure SECRET_KEY still in settings.py"; fi
@@ -40,7 +40,7 @@ try:
 except ImportError:
     yaml = None
 bad = False
-for p in [*pathlib.Path(".github/workflows").glob("*.y*ml"), pathlib.Path(".github/dependabot.yml"), pathlib.Path(".pre-commit-config.yaml")]:
+for p in [*pathlib.Path(".github/workflows").glob("*.y*ml"), pathlib.Path(".github/dependabot.yml")]:
     if yaml and p.exists():
         try: yaml.safe_load(p.read_text())
         except Exception as e: print(p, e); bad = True
