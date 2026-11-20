@@ -1,0 +1,12 @@
+{
+  "name": "marank-plugins",
+  "owner": { "name": "marank" },
+  "plugins": [
+    {
+      "name": "django-spa-defaults",
+      "source": "./plugins/django-spa-defaults",
+      "description": "House defaults for Django projects with a Vue or React SPA: scaffold new repos or bring existing ones in line.",
+      "version": "0.6.0"
+    }
+  ]
+}

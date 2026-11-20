@@ -1,0 +1,26 @@
+#!/bin/sh
+# Render the nginx site config from env into /tmp (the rootfs is read-only), then run
+# nginx in the foreground as the unprivileged user.
+set -eu
+
+conf_dir=/tmp/nginx
+mkdir -p "$conf_dir"
+
+TRUSTED_GEO=""
+REAL_IP_CONFIG=""
+nl='
+'
+for p in $(echo "${TRUSTED_PROXIES:-}" | tr ',' ' '); do
+  TRUSTED_GEO="${TRUSTED_GEO}        ${p} 1;${nl}"
+  REAL_IP_CONFIG="${REAL_IP_CONFIG}    set_real_ip_from ${p};${nl}"
+done
+if [ -n "$REAL_IP_CONFIG" ]; then
+  REAL_IP_CONFIG="${REAL_IP_CONFIG}    real_ip_header X-Forwarded-For;${nl}    real_ip_recursive on;"
+fi
+
+export TRUSTED_GEO REAL_IP_CONFIG
+envsubst '${TRUSTED_GEO} ${REAL_IP_CONFIG}' \
+  < /etc/nginx/app.conf.template > "$conf_dir/app.conf"
+
+nginx -e /dev/stderr -t -q
+exec nginx -e /dev/stderr -g 'daemon off;'

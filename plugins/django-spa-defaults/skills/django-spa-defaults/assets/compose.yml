@@ -1,0 +1,85 @@
+# Production: PostgreSQL and the app. Works with a .env next to it and nothing else from
+# the repository: copy this file and .env.example to the server, fill in .env, `docker compose up -d`.
+name: <project>
+
+# Hardened: unprivileged, without capabilities, nothing but the volumes and /tmp writable.
+x-hardened: &hardened
+  read_only: true
+  tmpfs:
+    - /tmp
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+services:
+  db:
+    image: postgres:<PG_MAJOR>-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-<project>}
+      POSTGRES_USER: ${DB_USER:-<project>}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    volumes:
+      # Postgres 18+ images keep data under /var/lib/postgresql/<major>/docker, so the
+      # volume goes on /var/lib/postgresql; for <=17 it is /var/lib/postgresql/data.
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    <<: *hardened
+    # The image CI pushes; APP_IMAGE pins a version (ghcr.io/<owner>/<project>:1.2) or
+    # points at a local build (`docker build -t <project> .`, APP_IMAGE=<project>).
+    image: ${APP_IMAGE:-ghcr.io/<owner>/<project>:latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DEBUG: "false"
+      DB_HOST: db
+      DB_PORT: "5432"
+    ports:
+      - "${APP_BIND:-8080}:8080"
+    volumes:
+      - app-data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Background jobs (mails, the nightly backup, cleanup): same image, own container, so it
+  # has its own logs, restarts and health check. Waits until the app has migrated.
+  worker:
+    <<: *hardened
+    image: ${APP_IMAGE:-ghcr.io/<owner>/<project>:latest}
+    restart: unless-stopped
+    command: ["sh", "/usr/local/bin/worker"]
+    # A minimal init as PID 1 forwards `docker stop` and reaps finished child processes.
+    init: true
+    env_file: .env
+    environment:
+      DEBUG: "false"
+      DB_HOST: db
+      DB_PORT: "5432"
+    volumes:
+      - app-data:/data
+      # Nightly pg_dump (BACKUP_TIME, BACKUP_KEEP_DAYS). Manual dump:
+      #   docker compose exec worker python manage.py backup_database
+      # Copy dumps off the host: docker compose cp worker:/backups ./backups
+      - backups:/backups
+    healthcheck:
+      # The image's HTTP health check is for the app; this checks the worker's database link.
+      test: ["CMD", "python", "manage.py", "procrastinate", "healthchecks"]
+      interval: 60s
+      timeout: 10s
+      start_period: 60s
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db-data:
+  app-data:
+  backups:

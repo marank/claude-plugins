@@ -1,0 +1,14 @@
+{
+  "recommendations": [
+    // [VUE] Vue only
+    "vue.volar",
+    "charliermarsh.ruff",
+    "ms-python.python",
+    "dbaeumer.vscode-eslint",
+    "oxc.oxc-vscode",
+    "esbenp.prettier-vscode",
+    // [TAILWIND] only with Tailwind (shadcn)
+    "bradlc.vscode-tailwindcss",
+    "editorconfig.editorconfig"
+  ]
+}
