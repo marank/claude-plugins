@@ -46,7 +46,8 @@ This is how a change gets in:
 <!-- [RELEASE_PLEASE] -->
 Pull requests are squash-merged, and their title becomes the commit on `main`. Write it as a
 [Conventional Commit](https://www.conventionalcommits.org/) in English: `feat: show the owner
-on the detail page`, `fix: …`, `docs: …`, `chore: …`; `feat!:` or a `BREAKING CHANGE:` footer
+on the detail page`, `fix: …`, `deps: …` (a dependency that reaches users), `docs: …`, `chore: …`;
+`feat!:` or a `BREAKING CHANGE:` footer
 for incompatible changes. Releases are made from these titles (CHANGELOG.md, version number),
 so they describe the change for users.
 <!-- [MANUAL_RELEASES] -->

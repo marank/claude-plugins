@@ -47,6 +47,7 @@ For explaining a tool when the user asks ("what is zizmor?", "why just?", "expla
 - **actionlint** — finds mistakes in workflow files (syntax, wrong expressions) before GitHub runs them.
 - **zizmor** — finds security problems in workflows: injectable expressions, too broad permissions, unpinned actions, cache poisoning. *Alternative*: poutine.
 - **Trivy** — scans the finished image for known vulnerabilities in system and language packages. Pin it by SHA. *Alternatives*: Grype, Docker Scout.
+- **endoflife.date** — a public list of when versions of Python, Debian, Node.js, PostgreSQL, Django and hundreds of other products lose support; `check_eol.py` asks its API weekly and turns the run red 180 days before.
 - **Dependabot** — opens pull requests when a dependency, action or base image has a new version (fixed choice for us; waits 7 days after a release, so broken or malicious releases are usually pulled before we see them).
 - **dependency-review** — blocks pull requests that add a dependency with a known serious vulnerability (public repos).
 - **build provenance attestation** — a signed record of which workflow built the image from which commit; anyone can verify it with `gh attestation verify`.

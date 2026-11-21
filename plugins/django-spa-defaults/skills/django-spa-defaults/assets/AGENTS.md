@@ -17,6 +17,8 @@ All commands live in the `justfile` (`just` lists them); CI and the VS Code task
   (agents too) and fix what it reports before committing.
 - `just check` runs everything CI runs and must pass before a push. A check is added or changed in
   the justfile only — never as an extra command in a workflow.
+- `just check-eol` (weekly in CI, not in `check`) fails 180 days before Python, Debian, Node.js,
+  PostgreSQL or Django lose security support: that is how majors Dependabot leaves out come up.
 - `just api-types` after any API change (schema → `frontend/openapi.json` →
   `frontend/src/api/schema.d.ts`); commit both. CI fails when they drift.
 - `just migrations` after model changes; commit the migrations (CI fails on missing ones).
@@ -24,7 +26,9 @@ All commands live in the `justfile` (`just` lists them); CI and the VS Code task
 - Frontend: **pnpm** only. Backend: `uv add` / `uv add --dev`.
 <!-- [RELEASE_PLEASE] -->
 - Commits on `main` are Conventional Commits (squash-merged PR titles); release-please builds
-  CHANGELOG.md and the releases from them (CONTRIBUTING.md).
+  CHANGELOG.md and the releases from them (CONTRIBUTING.md). Dependabot titles updates that reach
+  the image or the operators `deps:` (patch release, section "Dependencies") and development tools
+  `chore(deps):` (not in the changelog); `fix:` is for real bug fixes only.
 <!-- [/] -->
 - Dependabot proposes updates weekly, including the pinned commit SHAs of actions and the image
   digests. Not covered: `TRIVY_IMAGE`/`POSTGRES_IMAGE` in `build.yaml`, `SUPERVISOR_VERSION`/`PG_MAJOR`
