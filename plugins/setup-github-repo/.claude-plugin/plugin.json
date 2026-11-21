@@ -1,0 +1,10 @@
+{
+  "name": "setup-github-repo",
+  "version": "1.0.0",
+  "description": "Sets a GitHub repository's settings to the house defaults with gh: squash merges, rulesets with the CI checks, security features, pinned actions, immutable releases.",
+  "author": { "name": "marank" },
+  "homepage": "https://github.com/marank/claude-plugins",
+  "repository": "https://github.com/marank/claude-plugins",
+  "license": "MIT",
+  "keywords": ["github", "gh", "rulesets", "branch-protection", "security", "dependabot", "codeql"]
+}

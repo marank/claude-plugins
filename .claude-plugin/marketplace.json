@@ -7,6 +7,12 @@
       "source": "./plugins/django-spa-defaults",
       "description": "House defaults for Django projects with a Vue or React SPA: scaffold new repos or bring existing ones in line.",
       "version": "1.8.1"
+    },
+    {
+      "name": "setup-github-repo",
+      "source": "./plugins/setup-github-repo",
+      "description": "Sets a GitHub repository's settings to the house defaults with gh: squash merges, rulesets with the CI checks, security features, pinned actions, immutable releases.",
+      "version": "1.0.0"
     }
   ]
 }
