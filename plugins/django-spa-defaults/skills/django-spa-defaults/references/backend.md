@@ -280,7 +280,7 @@ python_files = ["test_*.py"]
 # add start-up time. One process, e.g. to debug with --pdb: -n 0.
 addopts = "-n auto --maxprocesses=8"
 # pytest-randomly shuffles the test order on every run, so tests that pass only because of
-# another test's leftovers fail; the seed is printed (`-p randomly -p "randomly_seed=…"` to repeat,
+# another test's leftovers fail; the seed is printed (`--randomly-seed=…` to repeat,
 # `-p no:randomly` to switch it off while debugging).
 
 [tool.coverage.run]
