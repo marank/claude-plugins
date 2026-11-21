@@ -1,6 +1,6 @@
 # House defaults checklist
 
-Version: 1.6.0 — the plugin's version (`django-spa-defaults`). A repo records the version it was last checked against in AGENTS.md.
+Version: 1.7.0 — the plugin's version (`django-spa-defaults`). A repo records the version it was last checked against in AGENTS.md.
 
 The norm for **existing repositories**: a repo meets the house defaults when every item below either passes or is listed as an accepted deviation in the repo's `AGENTS.md`. Only these items produce findings. The other references describe *how* to build things for a new project; when reviewing they are a lookup for fixing an item, never a source of extra findings.
 
@@ -20,7 +20,7 @@ Each item is one decision, so accepting it can't hide an unrelated problem. Item
 | REPO-02 | should | all | auto | `README.md` and `CONTRIBUTING.md` exist; `LICENSE` exists unless the project is proprietary (`"UNLICENSED"` in `frontend/package.json`). | — |
 | REPO-03 | must | all | auto | A task runner with a `check` target holds the check commands, and the CI workflows run checks only through it. | **just** · make, Task, mise tasks |
 | REPO-10 | must | all | auto | The `check` targets cover lint, formatting, types, the migrations check, Django's system checks, API schema drift and the backend tests (`check-backend`), and lint, formatting, types, tests, API types drift and the build (`check-frontend`). Decided by the script for a justfile; with another task runner `judge`. | **ruff, mypy, pytest; ESLint, Prettier, vue-tsc/tsc, Vitest** · the alternatives named at BE-07, BE-08, FE-04 |
-| REPO-11 | should | all | auto | The checks also catch unused or missing dependencies, copyleft licenses in production dependencies and a growing frontend bundle (with whatever tools fit; the defaults are deptry, the license scripts and size-limit). | **deptry, the license scripts from the template, size-limit** · fawltydeps; pip-licenses, license-checker; bundlewatch |
+| REPO-11 | should | all | auto | The checks also catch unused or missing dependencies, production dependencies whose license doesn't fit the project's and a growing frontend bundle (with whatever tools fit; the defaults are deptry, the license scripts and size-limit). | **deptry, the license scripts from the template, size-limit** · fawltydeps; pip-licenses, license-checker; bundlewatch |
 | REPO-05 | must | all | auto | Every environment variable the app reads at runtime (settings, apps) has an entry in `.env.example`. Variables of CI and tooling scripts (`CI`, `GITHUB_*`) don't belong there. | — |
 | REPO-06 | must | all | auto | Lock files are committed, one package manager per part (backend, frontend): exactly one lock file in each. | **uv; pnpm** · poetry, pdm; npm, yarn, bun |
 | REPO-07 | should | all | auto | `.editorconfig` exists; `.gitignore` ignores `.env`. | — |

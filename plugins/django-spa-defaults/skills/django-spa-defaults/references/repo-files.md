@@ -26,7 +26,7 @@ From `assets/`: `justfile`, `adr/` (only with ADRs: yes), `.vscode/`, `.claude/`
 | `MIT` / `Apache-2.0` | libraries, tools, anything where adoption matters more than reciprocity | the official text (SPDX license list, or `gh api /licenses/mit --jq .body` when gh is signed in), with year and owner filled in | the SPDX id |
 | proprietary | internal and customer projects | none | `LicenseRef-Proprietary` / `"UNLICENSED"` plus `"private": true` |
 
-The dependency license gate (no GPL/AGPL/SSPL in production dependencies) stays in every variant: it keeps the project's own license a free choice.
+The dependency license gate follows the project's license (`project.license` in pyproject.toml, `license` in package.json): an AGPL project accepts everything compatible with it — permissive licenses, LGPL, GPL-3.0, AGPL-3.0, GPL-2.0 "or later" — and rejects GPL-2.0-only, an unversioned GPL, EPL-1.0, CDDL and MPL-1.1; an MIT, Apache or proprietary project rejects every GPL and AGPL. SSPL and packages without license information fail everywhere (checked by hand, then `ALLOW`). An AGPL project gives up relicensing under a non-copyleft license once a GPL dependency comes in — accepted on purpose: AGPL is chosen for good.
 
 ## 3. README
 

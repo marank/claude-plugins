@@ -89,7 +89,9 @@ All commands live in the `justfile` (`just` lists them); CI and the VS Code task
   (no hard-coded counts: they break with every harmless optimisation).
 - Coverage stays ≥ 90 %. Tests run in parallel (`-n auto`) with `config.settings_test`: natively on
   SQLite, in CI on PostgreSQL. Tests that need PostgreSQL (e.g. a real `pg_dump`) are skipped on SQLite.
-- No GPL/AGPL/SSPL dependencies (CI license check), whatever <Project>'s own license: it stays a free choice.
+- Production dependencies must fit <Project>'s license (CI license check): with AGPL-3.0, GPL-3.0
+  and AGPL-3.0 dependencies are fine, GPL-2.0-only, SSPL and GPL-incompatible copyleft are not;
+  with any other license no GPL or AGPL at all. Exceptions checked by hand go into `ALLOW`.
 
 ## Frontend rules
 

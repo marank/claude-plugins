@@ -64,5 +64,5 @@ contribute the change under the project's license.
 ## License
 
 <Project> is licensed under the [<LICENSE_ID>](LICENSE). By submitting a contribution
-you agree that it is licensed under the same terms. Dependencies must not be under
-GPL, AGPL or SSPL (checked in CI).
+you agree that it is licensed under the same terms. Dependencies must be compatible with
+it (checked in CI).
