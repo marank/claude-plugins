@@ -1,6 +1,6 @@
 {
   "name": "django-spa-defaults",
-  "version": "1.3.0",
+  "version": "1.6.0",
   "description": "House defaults for Django projects with a Vue or React SPA: scaffold new repos or bring existing ones in line.",
   "author": { "name": "marank" },
   "homepage": "https://github.com/marank/claude-plugins",

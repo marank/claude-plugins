@@ -104,4 +104,4 @@ In the user's language (the code, comments and AGENTS.md stay English). Short: w
 
 ## Template markers
 
-Assets contain `<PLACEHOLDER>`s and variant blocks marked `[NINJA]` / `[DRF]`, `[VUE]` / `[REACT]`, `[TAILWIND]`, `[RELEASE_PLEASE]` / `[MANUAL_RELEASES]`, `[EXTERNAL]` / `[TEAM_ONLY]`, `[BACKEND_DE]` / `[BACKEND_EN]`, `[ADRS]`, `[ARM64]` and `[DOCS]` (in Markdown as `<!-- [VUE] -->` … `<!-- [/] -->`). Keep the blocks that apply, delete the others with their markers. The verify script fails on any leftover placeholder or marker.
+Assets contain `<PLACEHOLDER>`s and variant blocks marked `[NINJA]` / `[DRF]`, `[VUE]` / `[REACT]`, `[TAILWIND]`, `[RELEASE_PLEASE]` / `[MANUAL_RELEASES]`, `[EXTERNAL]` / `[TEAM_ONLY]`, `[BACKEND_DE]` / `[BACKEND_EN]`, `[ADRS]`, `[ARM64]`, `[DOCS]` / `[NO_DOCS]` (in Markdown as `<!-- [VUE] -->` … `<!-- [/] -->`). Keep the blocks that apply, delete the others with their markers. The verify script fails on any leftover placeholder or marker.

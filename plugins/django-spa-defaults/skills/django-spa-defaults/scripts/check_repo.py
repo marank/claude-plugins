@@ -278,7 +278,7 @@ def repo_07(r: Repo) -> Result:
     return verdict(problems)
 
 
-def repo_19(r: Repo) -> Result:
+def repo_21(r: Repo) -> Result:
     if not r.exists(".gitattributes"):
         return Result("fail", [".gitattributes missing"])
     lines = [line.split() for line in r.read(".gitattributes").splitlines()]
@@ -592,6 +592,17 @@ def ci_09(r: Repo) -> Result:
                 problems.append(f"{r.rel(p)}:{n}: a second place for the package manager version")
         problems += [f"{r.rel(p)}: pnpm/action-setup sets its own version" for _ in
                      re.finditer(r"pnpm/action-setup\S*[^\n]*\n(?:[ \t]+(?!- )[^\n]*\n)*?[ \t]+version:", text)]
+    return verdict(problems)
+
+
+def ci_10(r: Repo) -> Result:
+    text = r.tasks_text() + r.workflows_text()
+    if not re.search(r"check[-_]eol|endoflife", text):
+        return Result("fail", ["no scheduled end-of-support check (check_eol.py)"])
+    problems = [] if "schedule:" in r.workflows_text() else ["no scheduled workflow runs it"]
+    check = recipe_text(justfile_recipes(r.read("justfile")), "check")
+    if re.search(r"check[-_]eol", check):
+        problems.append("`check` runs it: its result changes with the date, keep it in the weekly run only")
     return verdict(problems)
 
 
@@ -934,6 +945,49 @@ def fe_11(r: Repo) -> Result:
 
 def fe_12(r: Repo) -> Result:
     return lint_rules(r, {"prefer-nullish-coalescing": r"stylistic-?TypeChecked|stylistic-type-checked"})
+
+
+def repo_20(r: Repo) -> Result:
+    if decision(r, RELEASES) != "release-please":
+        return Result("n/a")
+    dependabot = r.read(".github/dependabot.yml")
+    prefixes = re.findall(r"^\s*prefix:\s*[\"']?([^\"'\n]+?)[\"']?\s*$", dependabot, re.M)
+    problems = [] if "deps" in prefixes else ["Dependabot titles no updates `deps:` (commit-message prefix)"]
+    problems += [f"Dependabot titles updates `{p}:`; use `deps` or `chore(deps)`" for p in sorted(set(prefixes))
+                 if p.startswith(("fix", "feat"))]
+    try:
+        config = json.loads(r.read("release-please-config.json") or "{}")
+    except json.JSONDecodeError:
+        return Result("fail", ["release-please-config.json is not valid JSON"])
+    sections = [s for conf in [config, *config.get("packages", {}).values()] for s in conf.get("changelog-sections", [])]
+    if sections and not any(s.get("type") == "deps" and not s.get("hidden") for s in sections):
+        problems.append("the changelog sections hide or leave out `deps`")
+    return verdict(problems)
+
+
+README_ORDER = ("features", "quick start", "documentation", "contributing", "license")
+README_ELSEWHERE = ("tech stack", "stack", "project structure", "structure", "configuration", "development",
+                    "architecture", "deployment", "releases", "releases and ci", "authentication")
+
+
+def repo_19(r: Repo) -> Result:
+    text = r.read("README.md")
+    if not text:
+        return Result("n/a")  # REPO-02 reports the missing README
+    raw = [h.strip() for h in re.findall(r"^## (.+)$", text, re.M)]
+    headings = [h.lower() for h in raw]
+    required = [s for s in README_ORDER if s != "documentation" or r.exists("docs/package.json")]
+    found = [next((i for i, h in enumerate(headings) if h.startswith(s)), None) for s in required]
+    problems = [f"no `## {s.capitalize()}` section" for s, i in zip(required, found, strict=True) if i is None]
+    positions = [i for i in found if i is not None]
+    if positions != sorted(positions):
+        problems.append("sections not in the order " + ", ".join(s.capitalize() for s in required))
+    problems += [f"section `## {h}` belongs in the docs, CONTRIBUTING.md or AGENTS.md"
+                 for h in raw if h.lower() in README_ELSEWHERE]
+    lines = text.count("\n") + 1
+    if lines > 200:
+        problems.append(f"{lines} lines, more than 200")
+    return verdict(problems)
 
 
 CHECKS = {name.upper().replace("_", "-"): fn for name, fn in globals().copy().items()

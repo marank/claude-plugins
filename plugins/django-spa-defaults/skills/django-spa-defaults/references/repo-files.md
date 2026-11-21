@@ -30,19 +30,19 @@ The dependency license gate (no GPL/AGPL/SSPL in production dependencies) stays 
 
 ## 3. README
 
-Write a `README.md` (the user's language is fine):
-- what it is;
-- prerequisites (uv, Node, pnpm, just; Docker only for the image and the optional PostgreSQL);
-- first setup: `cp .env.example .env`, `just setup`, `just migrate` — SQLite, no database server; optionally `just db-up` + `DB_HOST=localhost` to run like CI;
-- `just` and its recipes (dev servers, `just check`, API types after API changes, migrations, translations), the VS Code tasks that call them, `just check-changed` before a commit;
-- production: copy `compose.yml` + `.env` to the server, `docker compose up -d` (app + worker) → port 8080 behind a TLS proxy, `set_password`, updating with `docker compose pull` (pin a version with `APP_IMAGE=ghcr.io/<owner>/<project>:1.2`), `scripts/sync_env.py`, verifying the image with `gh attestation verify`;
-- backups: in the worker's `backups` volume, a manual dump (`docker compose exec worker …`), restore, copying them off the host;
-- releases: with release-please, Conventional Commits → release PR → tag and image (CONTRIBUTING.md); otherwise a pushed `v1.2.3` tag;
-- GitHub setup (ci.md section 6);
-- a `## Contributing` section, in the same words in every project, then how to run it from source (the `just` recipes):
-  - team only: "<Project> is still in active development, so pull requests are not accepted yet; bug reports and ideas are welcome as issues. See [CONTRIBUTING.md](CONTRIBUTING.md)."
-  - external: "Bug reports, ideas and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md)."
-- pointers to `AGENTS.md` and the docs.
+Copy `assets/README.md` and fill it. The README is for someone deciding whether to use the project and getting it running — nothing else. Short, from the user's side, no tech stack; about 150 lines. The sections, in this order:
+
+1. **`# <Project>` and one paragraph**: what it is, for whom, what it does from request to result, self-hosted with Docker, the languages. Plain words, no framework names. If the code is written by an AI coding agent, a second short paragraph may say so and what keeps it in shape (types, tests, checks) — only when the user wants that.
+2. **One screenshot** of the main screen (`docs/public/screenshots/`), once there is one; a second one further down at most. Until then leave the image out.
+3. **`## Features`**, grouped with `###` by area or audience (e.g. "Self-service for employees", "Administration and security"). Bullets of one to three lines: a **bold term** where it helps, then what the user gets — not how it is built. Security and operations (roles, sign-in, hardened container, backups) are one group, last.
+4. **`## Quick start with Docker`**: download `compose.yml` and `.env.example`, a table of only the variables that must be set, `docker compose up -d`, where to open it and how to sign in, one line on updates, one line on the TLS proxy with a link.
+5. **`## Documentation`** (with docs): where it is (`docs/` and `/docs/` in the running app, languages) and one bullet per area (operations, using it, development) with links. Without docs: a short `## Operations` instead (TLS, settings explained in `.env.example`, backups).
+6. **`## Contributing`**: the fixed wording for the recorded mode, then the two commands to run it from source:
+   - team only: "<Project> is still in active development, so pull requests are not accepted yet; bug reports and ideas are welcome as issues. See [CONTRIBUTING.md](CONTRIBUTING.md)."
+   - external: "Bug reports, ideas and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md)."
+7. **`## License`**: the license with a link, and one sentence on what it means for the reader — AGPL: "Running a modified <Project> for others over a network obliges you to offer them its source."; MIT/Apache: "You may use, change and share it, keeping the copyright notice."; proprietary: "All rights reserved."
+
+Not in the README — it goes where its readers look: tech stack, project structure and architecture → `docs/…/development/` (or AGENTS.md); every setting → `docs/…/operations/configuration` and `.env.example`; development setup, `just` recipes, checks, release process and GitHub setup → `docs/…/development/` and CONTRIBUTING.md; backups, updates, verifying the image (`gh attestation verify`), `scripts/sync_env.py` → `docs/…/operations/`; internals such as authentication flows → the docs page of that feature. Lines wrap at about 90 characters.
 
 If `git` is available: `git init -b main` and a first commit, so the repo can be pushed right away.
 
@@ -51,7 +51,7 @@ If `git` is available: `git init -b main` and a first commit, so the repo can be
 Releases and contributions are asked for every new project (step 1) and, when the repo's AGENTS.md doesn't record them yet and the repo doesn't show them, in every review of an existing one (`check_repo.py` reports them as `ASK`). The answers go into AGENTS.md's `## House defaults` section as `- Releases: release-please` or `- Releases: by hand`, and `- Contributions: external` or `- Contributions: team only`; then they are not asked again. Show the user what each option looks like — most people haven't seen these before:
 
 **Releases: release-please or by hand?**
-- *release-please*: commit titles follow Conventional Commits (`feat: show the owner on the detail page`, `fix: keep the filter when paging`, `feat!: …` for breaking changes; with squash merges only the PR title has to). release-please keeps a pull request "chore(main): release 1.3.0" open that updates `CHANGELOG.md` (sections "Features", "Bug Fixes", one line per change with its commit); `fix` only → 1.2.1, any `feat` → 1.3.0, `feat!` → 2.0.0. Merging it tags `v1.3.0`, creates the GitHub release and builds the image `1.3.0` / `1.3` / `1`. Worth it once other people run the app and want to know what changed.
+- *release-please*: commit titles follow Conventional Commits (`feat: show the owner on the detail page`, `fix: keep the filter when paging`, `feat!: …` for breaking changes; with squash merges only the PR title has to). release-please keeps a pull request "chore(main): release 1.3.0" open that updates `CHANGELOG.md` (sections "Features", "Bug Fixes", one line per change with its commit); `fix` or `deps` only → 1.2.1, any `feat` → 1.3.0, `feat!` → 2.0.0. Merging it tags `v1.3.0`, creates the GitHub release and builds the image `1.3.0` / `1.3` / `1`. Worth it once other people run the app and want to know what changed.
 - *by hand*: commit titles are plain imperative sentences; a release is `git tag v1.3.0 && git push --tags`, the changelog is written by hand or not at all. Enough while you develop and run it yourselves.
 
 **Contributions: external or team only (in development)?**

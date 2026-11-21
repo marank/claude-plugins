@@ -128,6 +128,12 @@ check-docs:
     pnpm install --frozen-lockfile
     pnpm build
 
+# Python, Debian, Node.js, PostgreSQL, Django: fails 180 days before their support ends.
+# Not in `check`: it needs the network and its result changes with the date (weekly in CI).
+[working-directory: 'backend']
+check-eol:
+    uv run --no-project python scripts/check_eol.py
+
 # GitHub workflows: syntax (actionlint) and security (zizmor)
 check-workflows:
     uvx --from actionlint-py==<ACTIONLINT> actionlint

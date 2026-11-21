@@ -174,6 +174,28 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: just check-workflows
 
+  # --- End of support: `just check-eol`, only in the weekly run ----------------------------
+  # Updates Dependabot ignores (PostgreSQL majors) or doesn't offer (base image majors) come
+  # up here: the run turns red 180 days before a platform's support ends. Not a dependency of
+  # `image` and not a required check, so it never blocks the rebuild or a pull request.
+  eol:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@<SHA> # <VERSION>
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@<SHA> # <VERSION>
+
+      - name: Install just
+        run: uv tool install rust-just==<JUST>
+
+      - name: Check
+        run: just check-eol
+
   # --- Repository: committed secrets, vulnerable lock files, Dockerfile/compose ------------
   repository:
     runs-on: ubuntu-latest

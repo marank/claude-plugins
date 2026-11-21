@@ -1,6 +1,6 @@
 # House defaults checklist
 
-Version: 1.3.0 — the plugin's version (`django-spa-defaults`). A repo records the version it was last checked against in AGENTS.md.
+Version: 1.6.0 — the plugin's version (`django-spa-defaults`). A repo records the version it was last checked against in AGENTS.md.
 
 The norm for **existing repositories**: a repo meets the house defaults when every item below either passes or is listed as an accepted deviation in the repo's `AGENTS.md`. Only these items produce findings. The other references describe *how* to build things for a new project; when reviewing they are a lookup for fixing an item, never a source of extra findings.
 
@@ -24,13 +24,15 @@ Each item is one decision, so accepting it can't hide an unrelated problem. Item
 | REPO-05 | must | all | auto | Every environment variable the app reads at runtime (settings, apps) has an entry in `.env.example`. Variables of CI and tooling scripts (`CI`, `GITHUB_*`) don't belong there. | — |
 | REPO-06 | must | all | auto | Lock files are committed, one package manager per part (backend, frontend): exactly one lock file in each. | **uv; pnpm** · poetry, pdm; npm, yarn, bun |
 | REPO-07 | should | all | auto | `.editorconfig` exists; `.gitignore` ignores `.env`. | — |
-| REPO-19 | should | all | auto | `.gitattributes` checks text files out with LF on every platform (`* text=auto eol=lf`), so a Windows clone with `core.autocrlf` doesn't put CRLF into shell scripts and the Docker image. | — |
+| REPO-21 | should | all | auto | `.gitattributes` checks text files out with LF on every platform (`* text=auto eol=lf`), so a Windows clone with `core.autocrlf` doesn't put CRLF into shell scripts and the Docker image. | — |
 | REPO-13 | should | all | auto | Releases as recorded in AGENTS.md (`- Releases: release-please` or `by hand`): with release-please, its config, manifest and workflow exist. Not recorded yet → recorded from what the repo shows, asked only otherwise (`repo-files.md` section 4). | **release-please** · by hand (tag + GitHub release) |
 | REPO-14 | should | all | auto | Contributions as recorded in AGENTS.md (`- Contributions: external` or `team only`): with external contributors, `CODE_OF_CONDUCT.md` exists and CONTRIBUTING.md asks for the DCO sign-off. Not recorded yet → recorded from what the repo shows, asked only otherwise. | **DCO GitHub App** for the sign-off check |
 | REPO-15 | should | all | auto | CONTRIBUTING.md follows the template: sections Issues, Pull requests, License with the template's wording, in the mode recorded in AGENTS.md — external (pull requests welcome) or team only (in active development: an IMPORTANT note that pull requests are not accepted for now). | — |
 | REPO-16 | should | all | auto | The README has a `## Contributing` section in the template's words for the recorded mode (team only: pull requests are not accepted yet; external: pull requests are welcome) that points to CONTRIBUTING.md. | — |
 | REPO-17 | should | all | auto | With release-please and no release yet (manifest at `0.0.0`), the first release is `0.1.0` (`"initial-version": "0.1.0"`); release-please would otherwise open it as `1.0.0`. | **release-please** |
 | REPO-18 | should | all | auto | ADRs as recorded in AGENTS.md (`- ADRs: yes` or `no`); no line means no ADRs and nothing to check. With yes, `adr/` exists with its template. An `adr/` folder without the line is recorded as yes, without asking. | **the skill's template (Nygard/MADR style)** · adr-tools, MADR |
+| REPO-19 | should | all | auto | The README has the house layout: `## Features`, `## Quick start …`, `## Documentation` (with VitePress docs), `## Contributing`, `## License` in this order; no sections for the tech stack, project structure, configuration, development, architecture, deployment or releases (those live in the docs, CONTRIBUTING.md or AGENTS.md); at most 200 lines. | — |
+| REPO-20 | should | all | auto | With release-please, Dependabot titles updates that reach the image or operators `deps:` and development tools `chore(deps):` — so they trigger releases, appear under "Dependencies" and don't bury real `fix:` entries — and the changelog sections list `deps`. | **Dependabot `commit-message.prefix`** |
 | REPO-12 | should | all | auto | `SECURITY.md` says how to report a vulnerability privately. | **GitHub private vulnerability reporting** · a security mail address |
 
 ## Backend
@@ -91,6 +93,7 @@ Each item is one decision, so accepting it can't hide an unrelated problem. Item
 | CI-06 | must | all | auto | Dependabot covers the Python, npm, Docker and GitHub Actions dependencies. | **Dependabot** (fixed choice) |
 | CI-08 | should | all | auto | Every Dependabot entry sets a cooldown. | — |
 | CI-09 | should | all | auto | The JavaScript package manager's version is set in one place (`packageManager` in `package.json`), and the Docker build and CI install that version without the corepack that Node bundled until version 24 (Node 25 and newer ship without it). | **`npm install -g` with the `packageManager` version in the Dockerfile, `pnpm/action-setup` in CI** · corepack installed explicitly (`npm install -g corepack`) |
+| CI-10 | should | all | auto | A scheduled run warns well before a platform loses security support (Python, Debian, Node.js, PostgreSQL, Django) — the majors Dependabot leaves out. Not part of `check` and not a required status check. | **`backend/scripts/check_eol.py` from the template** (endoflife.date) |
 
 ## Frontend
 
@@ -113,7 +116,10 @@ Each item is one decision, so accepting it can't hide an unrelated problem. Item
 
 Only versions that change items are listed; a plugin release without an entry leaves the checklist as it was.
 
-- **1.3.0** (2026-11-21): new REPO-19 (`.gitattributes` with LF line endings).
+- **1.6.0** (2026-11-21): new REPO-21 (`.gitattributes` with LF line endings).
+- **1.5.0** (2026-11-21): new REPO-20 (Dependabot commit titles `deps:` / `chore(deps):` with release-please).
+- **1.4.0** (2026-11-21): new REPO-19 (README layout: short, for users; details in the docs).
+- **1.3.0** (2026-11-21): new CI-10 (warning before platforms lose security support).
 - **1.2.0** (2026-11-21): new BE-21 (apps in `backend/apps/`, new projects only, split from BE-01); widened BE-01 (only the `models/` package), BE-03 and FE-03 (new projects only; BE-03 `should`).
 - **1.1.0** (2026-11-21): widened BE-02 (`should`, new projects only), BE-04 (a case-insensitive authentication backend passes too).
 - **1.0.0** (2026-11-21): first published version, all items.

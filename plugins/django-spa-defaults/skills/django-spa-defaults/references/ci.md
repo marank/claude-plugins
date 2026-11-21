@@ -15,9 +15,10 @@
 | `justfile` | every check command; CI jobs and the VS Code tasks only call its recipes (`check-backend`, `check-deploy`, `check-frontend`, `check-docs`, `check-workflows`, `check` for all) |
 | `.github/workflows/build.yaml` | jobs backend, frontend, (docs), workflows, repository, dependency-review (PRs) → image per platform on native runners (amd64, arm64: build, smoke test, Trivy scan, push by digest) → merge (multi-platform image with all tags, provenance attestation); weekly rebuild of main; callable by release.yaml |
 | `.github/workflows/release.yaml` | (with `- Releases: release-please`) release-please: keeps a release PR (CHANGELOG.md, next version) up to date; merging it tags `vX.Y.Z` and calls build.yaml with the version |
-| `release-please-config.json`, `.release-please-manifest.json` | release type `simple`; the first release is `0.1.0` (`initial-version`, release-please would otherwise start at `1.0.0` whatever the manifest says), versions before 1.0 bump minor for breaking changes; manifest starts at `0.0.0` |
-| `.github/dependabot.yml` | weekly updates: uv, npm (frontend, docs), Dockerfile (tags + digests), compose, GitHub Actions (SHAs); minor/patch grouped per area, majors one by one, Postgres majors and odd Node majors ignored; a 7-day cooldown on every ecosystem (security updates are not delayed). No automerge: updates are merged by a person after green CI |
+| `release-please-config.json`, `.release-please-manifest.json` | release type `simple`; `changelog-sections` with "Dependencies" for `deps:` and the internal types hidden; the first release is `0.1.0` (`initial-version`, release-please would otherwise start at `1.0.0` whatever the manifest says), versions before 1.0 bump minor for breaking changes; manifest starts at `0.0.0` |
+| `.github/dependabot.yml` | weekly updates: uv, npm (frontend, docs), Dockerfile (tags + digests), compose, GitHub Actions (SHAs); minor/patch grouped per area, majors one by one, Postgres majors and odd Node majors ignored; commit titles `deps:` for what reaches the image or operators and `chore(deps):` for development tools, so release-please lists them under "Dependencies" or leaves them out, and real `fix:` entries stay readable; a 7-day cooldown on every ecosystem (security updates are not delayed). No automerge: updates are merged by a person after green CI |
 | `backend/scripts/check_licenses.py` | GPL/AGPL/SSPL gate for Python prod deps (LGPL allowed), in its own throwaway venv |
+| `backend/scripts/check_eol.py` | asks endoflife.date when the Python, Debian, Node.js, PostgreSQL and Django versions in the Dockerfile, compose.yml and uv.lock lose security support; `just check-eol` fails 180 days before. Only in the weekly run (job `eol`), never in `check` (network, date-dependent) and never a required status check |
 | `backend/scripts/check_openapi.py` | exports the schema into a temp file and compares it with `frontend/openapi.json`; keep the `[NINJA]` or `[DRF]` command |
 | `backend/deploy-check.env` | production-like settings for `just check-deploy` |
 | `frontend/scripts/check-licenses.mjs` | same license gate for npm prod deps |
@@ -28,7 +29,7 @@
 
 **Security tab.** Trivy writes SARIF for the repository and each image, uploaded to code scanning; `actions/dependency-review-action` blocks pull requests that add dependencies with known high vulnerabilities. Both, like the attestation, need a public repository (or GitHub Advanced Security) and are skipped on private ones.
 
-**What Dependabot does not cover** — say so in `AGENTS.md` and the README:
+**What Dependabot does not cover** — say so in `AGENTS.md` and the development docs:
 - `TRIVY_IMAGE` (tag + digest) and `POSTGRES_IMAGE` in `build.yaml`, started with `docker run`; Postgres together with `compose.yml`.
 - `ARG SUPERVISOR_VERSION` and `ARG PG_MAJOR` in the Dockerfile (PG_MAJOR follows compose's Postgres major).
 - `<ACTIONLINT>` and `<ZIZMOR>` in the justfile, `rust-just==<JUST>` in the workflows.
