@@ -1,6 +1,6 @@
 # House defaults checklist
 
-Version: 1.8.0 — the plugin's version (`django-spa-defaults`). A repo records the version it was last checked against in AGENTS.md.
+Version: 1.8.1 — the plugin's version (`django-spa-defaults`). A repo records the version it was last checked against in AGENTS.md.
 
 The norm for **existing repositories**: a repo meets the house defaults when every item below either passes or is listed as an accepted deviation in the repo's `AGENTS.md`. Only these items produce findings. The other references describe *how* to build things for a new project; when reviewing they are a lookup for fixing an item, never a source of extra findings.
 
