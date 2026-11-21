@@ -25,6 +25,8 @@ For explaining a tool when the user asks ("what is zizmor?", "why just?", "expla
 - **mypy** with **django-stubs** — checks the type hints, so a wrong argument or a possibly-missing value shows up before it runs; the stubs teach it Django's models and querysets. *Alternatives*: pyright or basedpyright (faster, what VS Code uses internally) with django-types.
 - **mypy `warn_unreachable` and friends** — report checks the types make impossible (`if user is None` when `user` can't be None, a branch that can never run), the typical "just to be safe" code that makes functions longer without making them safer.
 - **mypy error codes `truthy-bool`, `possibly-undefined`, `exhaustive-match`, `ignore-without-code`** — likely bugs `strict` doesn't catch: `if obj:` on something always true, a variable set in only one branch, a `match` that forgets a new enum value, a blanket `# type: ignore`.
+- **ruff `PT`, `PGH`, `RUF100`** — pytest rules (tests that assert, clean fixtures), no blanket `# noqa` or `# type: ignore`, no unused ones: a red check gets fixed, not switched off.
+- **pytest-randomly** — shuffles the test order each run, so a test that only passes after another one fails right away.
 - **complexipy** — measures cognitive complexity: how hard a function is to follow. Unlike plain branch counting, nesting costs more than a flat list of cases, so a long but flat `match` passes and three nested `if`s don't. Limit 15.
 - **import-linter** — enforces which code may import which (API → services → selectors → models; `core` imports no other app), so the structure doesn't erode quietly. *Alternative*: tach.
 - **pytest** with **pytest-cov** — runs the tests and measures how much code they cover; the build fails below the agreed share.
@@ -64,6 +66,14 @@ For explaining a tool when the user asks ("what is zizmor?", "why just?", "expla
 - **`switch-exhaustiveness-check`** — a `switch` over a union must handle every member, so a new value from the API fails the build instead of falling through.
 - **`prefer-nullish-coalescing`** — `??` instead of `||` for defaults: `count || 10` turns a real `0` into 10, `count ?? 10` doesn't.
 - **eslint-plugin-sonarjs** — here only for `cognitive-complexity`, the frontend counterpart of complexipy.
+- **`eslint-comments`** (`@eslint-community/eslint-plugin-eslint-comments`) and `reportUnusedDisableDirectives` — every `eslint-disable` names its rules and gives a reason, unused ones fail; with `ban-ts-comment` the same for `@ts-expect-error`. The main guard against AI code that silences checks.
+- **`@vitest/eslint-plugin`** — tests without an assertion, a forgotten `.only`, skipped tests.
+- **jscpd** — finds copied blocks across TypeScript, Vue and Python; fails above 3 % duplication.
+- **`eslint-plugin-vuejs-accessibility`** / **`eslint-plugin-jsx-a11y`** — accessibility mistakes: images without alt text, form fields without a label, clickable elements without keyboard access.
+- **eslint-plugin-vue presets** — `essential` only catches errors; `strongly-recommended` adds readability rules such as declared emits. `vue/no-v-html` forbids unescaped HTML (XSS), `vue/no-unused-properties` finds dead props and state.
+- **`strictTemplates`** (vue-tsc) — a prop, event or component a template uses but nothing declares becomes a type error.
+- **`@eslint-react`** — here only four rules: no `dangerouslySetInnerHTML`, no leaked `{count && …}` that renders "0", no component defined inside another, no array index as key.
+- **The Claude Code hook** (`.claude/settings.json` + `scripts/lint_file.py`) — formats and lints each file an agent edits, right after the edit; problems go back to the agent in the same step.
 - **Prettier** — formats the code, so nobody discusses formatting.
 - **Vitest** — runs the frontend tests, using the same setup as Vite. *Alternative*: Jest in older projects.
 - **size-limit** — fails the build when the shipped JavaScript grows past a set size. *Alternative*: bundlewatch.

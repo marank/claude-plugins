@@ -1,6 +1,6 @@
 # House defaults checklist
 
-Version: 1.7.0 — the plugin's version (`django-spa-defaults`). A repo records the version it was last checked against in AGENTS.md.
+Version: 1.8.0 — the plugin's version (`django-spa-defaults`). A repo records the version it was last checked against in AGENTS.md.
 
 The norm for **existing repositories**: a repo meets the house defaults when every item below either passes or is listed as an accepted deviation in the repo's `AGENTS.md`. Only these items produce findings. The other references describe *how* to build things for a new project; when reviewing they are a lookup for fixing an item, never a source of extra findings.
 
@@ -33,6 +33,8 @@ Each item is one decision, so accepting it can't hide an unrelated problem. Item
 | REPO-18 | should | all | auto | ADRs as recorded in AGENTS.md (`- ADRs: yes` or `no`); no line means no ADRs and nothing to check. With yes, `adr/` exists with its template. An `adr/` folder without the line is recorded as yes, without asking. | **the skill's template (Nygard/MADR style)** · adr-tools, MADR |
 | REPO-19 | should | all | auto | The README has the house layout: `## Features`, `## Quick start …`, `## Documentation` (with VitePress docs), `## Contributing`, `## License` in this order; no sections for the tech stack, project structure, configuration, development, architecture, deployment or releases (those live in the docs, CONTRIBUTING.md or AGENTS.md); at most 200 lines. | — |
 | REPO-20 | should | all | auto | With release-please, Dependabot titles updates that reach the image or operators `deps:` and development tools `chore(deps):` — so they trigger releases, appear under "Dependencies" and don't bury real `fix:` entries — and the changelog sections list `deps`. | **Dependabot `commit-message.prefix`** |
+| REPO-22 | should | all | auto | The checks fail on copied code: at most 3 % duplicated across frontend and backend sources (tests, migrations and vendored UI excluded). | **jscpd** |
+| REPO-23 | should | all | auto | An AI coding agent gets lint and format feedback on each file it edits, right after the edit. | **Claude Code hook (`.claude/settings.json` + `scripts/lint_file.py`)** · the equivalent of another agent |
 | REPO-12 | should | all | auto | `SECURITY.md` says how to report a vulnerability privately. | **GitHub private vulnerability reporting** · a security mail address |
 
 ## Backend
@@ -59,6 +61,8 @@ Each item is one decision, so accepting it can't hide an unrelated problem. Item
 | BE-19 | should | all | auto | The type checker also reports truthiness checks on always-true objects, variables set only in some branches, a `match` that misses a case, and `type: ignore` without an error code. | **mypy error codes `truthy-bool`, `possibly-undefined`, `exhaustive-match`, `ignore-without-code`** · pyright or basedpyright in strict mode |
 | BE-20 | should | all | auto | The linter reports slow patterns and longer spellings of what the standard library does directly. | **ruff `PERF` and `FURB`** |
 | BE-21 | should | new | auto | Apps live in `backend/apps/<name>/` — moving existing apps changes every import path for little gain. | — |
+| BE-22 | should | all | auto | Tests test: the linter checks pytest usage, and the test order is shuffled on every run. | **ruff `PT` + pytest-randomly** |
+| BE-23 | must | all | auto | Checks can't be silenced wholesale: no blanket `# noqa` or `# type: ignore`, and unused ones fail. | **ruff `PGH` + `RUF100`** |
 
 ## Security
 
@@ -111,11 +115,19 @@ Each item is one decision, so accepting it can't hide an unrelated problem. Item
 | FE-10 | should | all | auto | The linter reports promises nobody awaits or catches. | **`@typescript-eslint/no-floating-promises` and `no-misused-promises`** (both in `recommendedTypeChecked`) |
 | FE-11 | should | all | auto | A `switch` over a union type must handle every member. | **`@typescript-eslint/switch-exhaustiveness-check`** |
 | FE-12 | should | all | auto | Defaults use `??` rather than the or-operator, so `0` and `""` are kept. | **`@typescript-eslint/prefer-nullish-coalescing`** (in `stylisticTypeChecked`) |
+| FE-13 | must | all | auto | No unescaped HTML: `v-html` / `dangerouslySetInnerHTML` are reported (an exception names its reason). | **`vue/no-v-html`; `@eslint-react/dom/no-dangerously-set-innerhtml`** · `react/no-danger` |
+| FE-14 | should | all | auto | The framework's linter goes beyond the generator's minimum: Vue at least `strongly-recommended`; React the current hooks preset with the React Compiler rules. | **eslint-plugin-vue; eslint-plugin-react-hooks** |
+| FE-15 | should | all | auto | The linter reports dead and leaky component code: Vue unused properties; React leaked conditional rendering, nested component definitions, array index keys. | **`vue/no-unused-properties`; `@eslint-react`** |
+| FE-16 | should | all | auto | Vue: templates are type-checked strictly — unknown components, props, events and directives are errors. React: n/a. | **vue-tsc `strictTemplates`** |
+| FE-17 | should | all | auto | The linter reports accessibility mistakes (missing alt texts, unlabelled form fields, clickable elements without keyboard access). | **eslint-plugin-vuejs-accessibility; eslint-plugin-jsx-a11y** |
+| FE-18 | should | all | auto | Tests test: no test without an assertion, no focused (`.only`) or skipped test. | **`@vitest/eslint-plugin`** · eslint-plugin-jest |
+| FE-19 | must | all | auto | Checks can't be silenced wholesale: every `eslint-disable` names its rules and gives a reason, unused ones fail, `@ts-ignore` is banned. | **`@eslint-community/eslint-plugin-eslint-comments` + `reportUnusedDisableDirectives`** |
 
 ## Changelog
 
 Only versions that change items are listed; a plugin release without an entry leaves the checklist as it was.
 
+- **1.8.0** (2026-11-21): new REPO-22, REPO-23, BE-22, BE-23, FE-13 … FE-19 (no silenced checks, tests that test, no copied code, XSS, framework and accessibility linting, strict Vue templates, lint feedback for agents).
 - **1.6.0** (2026-11-21): new REPO-21 (`.gitattributes` with LF line endings).
 - **1.5.0** (2026-11-21): new REPO-20 (Dependabot commit titles `deps:` / `chore(deps):` with release-please).
 - **1.4.0** (2026-11-21): new REPO-19 (README layout: short, for users; details in the docs).

@@ -22,7 +22,7 @@ uv add "django[argon2]" "psycopg[binary]" gunicorn "procrastinate[django]" djang
                                    # supervisord is installed in the image, not here
 uv add django-ninja                # Ninja variant
 # or: uv add djangorestframework drf-spectacular   # DRF variant
-uv add --dev pytest pytest-django pytest-cov pytest-xdist factory-boy ruff mypy django-stubs deptry import-linter complexipy
+uv add --dev pytest pytest-django pytest-cov pytest-xdist factory-boy ruff mypy django-stubs deptry import-linter complexipy pytest-randomly
 # DRF variant also: uv add --dev djangorestframework-stubs
 uv run django-admin startproject config .
 mkdir -p apps && touch apps/__init__.py
@@ -230,6 +230,8 @@ select = [
     "TRY",  # exception handling: no `except: pass`, re-raise with context, …
     "PERF", # slow patterns (building a list in a loop, …)
     "FURB", # older, longer spellings of what the standard library does directly
+    "PT",   # pytest: tests that assert something, no stray fixtures
+    "PGH",  # no blanket `# noqa` / `# type: ignore` (RUF100 reports unused ones)
 ]
 ignore = [
     "S603", "S607",  # subprocess with fixed argument lists (pg_dump, uv) is intended
@@ -277,6 +279,9 @@ python_files = ["test_*.py"]
 # In parallel (pytest-xdist), each worker with its own test database; more than 8 only
 # add start-up time. One process, e.g. to debug with --pdb: -n 0.
 addopts = "-n auto --maxprocesses=8"
+# pytest-randomly shuffles the test order on every run, so tests that pass only because of
+# another test's leftovers fail; the seed is printed (`-p randomly -p "randomly_seed=…"` to repeat,
+# `-p no:randomly` to switch it off while debugging).
 
 [tool.coverage.run]
 source = ["apps", "config"]

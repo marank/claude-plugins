@@ -965,6 +965,120 @@ def repo_20(r: Repo) -> Result:
     return verdict(problems)
 
 
+def frontend_kind(r: Repo) -> str | None:
+    package = r.read("frontend/package.json")
+    return "vue" if '"vue"' in package else "react" if '"react"' in package else None
+
+
+def ruff_select(r: Repo) -> set[str]:
+    lint = r.pyproject().get("tool", {}).get("ruff", {})
+    lint = {**lint, **lint.get("lint", {})}
+    return set(lint.get("select", [])) | set(lint.get("extend-select", []))
+
+
+def repo_22(r: Repo) -> Result:
+    config = r.read("frontend/.jscpd.json") + r.read(".jscpd.json")
+    if "jscpd" not in r.tasks_text() + r.read("frontend/package.json") + r.workflows_text():
+        return Result("fail", ["the checks don't look for copied code (jscpd)"])
+    m = re.search(r'"threshold"\s*:\s*(\d+(?:\.\d+)?)', config)
+    if not m:
+        return Result("fail", ["jscpd has no threshold, so it never fails"])
+    return verdict([f"jscpd allows {m.group(1)} %, more than 3"] if float(m.group(1)) > 3 else [])
+
+
+def repo_23(r: Repo) -> Result:
+    settings = r.read(".claude/settings.json")
+    return verdict([] if "PostToolUse" in settings else ["no hook gives an agent lint feedback after an edit"])
+
+
+def be_22(r: Repo) -> Result:
+    if not r.exists("backend/pyproject.toml"):
+        return Result("n/a")
+    select = ruff_select(r)
+    problems = [] if "ALL" in select or "PT" in select else ["ruff does not select PT"]
+    if "pytest-randomly" not in r.read("backend/pyproject.toml"):
+        problems.append("pytest-randomly is not installed")
+    return verdict(problems)
+
+
+def be_23(r: Repo) -> Result:
+    if not r.exists("backend/pyproject.toml"):
+        return Result("n/a")
+    select = ruff_select(r)
+    if "ALL" in select:
+        return Result("pass")
+    problems = [] if "PGH" in select else ["ruff does not select PGH (blanket noqa / type: ignore)"]
+    if not ({"RUF", "RUF100"} & select):
+        problems.append("ruff does not select RUF100 (unused noqa)")
+    return verdict(problems)
+
+
+def fe_13(r: Repo) -> Result:
+    kind, text = frontend_kind(r), r.frontend_lint_text()
+    if kind is None:
+        return Result("n/a")
+    pattern = r"vue/no-v-html" if kind == "vue" else r"no-dangerously-set-innerhtml|react/no-danger"
+    return verdict([] if re.search(pattern, text) else ["unescaped HTML is not reported (v-html / dangerouslySetInnerHTML)"])
+
+
+def fe_14(r: Repo) -> Result:
+    kind, text = frontend_kind(r), r.frontend_lint_text()
+    if kind == "vue":
+        ok = re.search(r"flat/(strongly-recommended|recommended)", text)
+        return verdict([] if ok else ["eslint-plugin-vue only at `essential`"])
+    if kind == "react":
+        ok = "react-hooks" in text and re.search(r"recommended", text)
+        return verdict([] if ok else ["eslint-plugin-react-hooks' recommended preset is not used"])
+    return Result("n/a")
+
+
+def fe_15(r: Repo) -> Result:
+    kind, text = frontend_kind(r), r.frontend_lint_text()
+    if kind == "vue":
+        return verdict([] if "no-unused-properties" in text else ["vue/no-unused-properties is off"])
+    if kind == "react":
+        rules = {"no-leaked-conditional-rendering": "no-leaked-conditional-rendering",
+                 "no-nested-component-definitions": "no-nested-component(-definition)?s",
+                 "no-array-index-key": "no-array-index-key"}
+        return verdict([f"the linter does not enable {name}" for name, pat in rules.items() if not re.search(pat, text)])
+    return Result("n/a")
+
+
+def fe_16(r: Repo) -> Result:
+    if frontend_kind(r) != "vue":
+        return Result("n/a")
+    text = "".join(p.read_text(encoding="utf-8", errors="replace") for p in r.files("frontend/tsconfig*.json"))
+    ok = re.search(r'"strictTemplates"\s*:\s*true', text) or all(
+        re.search(rf'"{o}"\s*:\s*true', text) for o in ("checkUnknownComponents", "checkUnknownProps", "checkUnknownEvents"))
+    return verdict([] if ok else ["vueCompilerOptions.strictTemplates is off"])
+
+
+def fe_17(r: Repo) -> Result:
+    if frontend_kind(r) is None:
+        return Result("n/a")
+    ok = re.search(r"vuejs-accessibility|jsx-a11y", r.frontend_lint_text())
+    return verdict([] if ok else ["no accessibility lint rules (vuejs-accessibility, jsx-a11y)"])
+
+
+def fe_18(r: Repo) -> Result:
+    if frontend_kind(r) is None:
+        return Result("n/a")
+    text = r.frontend_lint_text()
+    return verdict([f"the linter does not enable {rule}" for rule in ("expect-expect", "no-focused-tests", "no-disabled-tests")
+                    if rule not in text])
+
+
+def fe_19(r: Repo) -> Result:
+    if frontend_kind(r) is None:
+        return Result("n/a")
+    text = r.frontend_lint_text()
+    problems = [f"the linter does not enable {rule}" for rule in ("require-description", "no-unlimited-disable")
+                if rule not in text]
+    if not re.search(r"reportUnusedDisableDirectives['\"]?\s*:\s*['\"]?(error|2|true)", text):
+        problems.append("unused eslint-disable comments don't fail (reportUnusedDisableDirectives)")
+    return verdict(problems)
+
+
 README_ORDER = ("features", "quick start", "documentation", "contributing", "license")
 README_ELSEWHERE = ("tech stack", "stack", "project structure", "structure", "configuration", "development",
                     "architecture", "deployment", "releases", "releases and ci", "authentication")

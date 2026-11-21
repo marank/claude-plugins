@@ -10,7 +10,7 @@ pnpm create vite@latest frontend --template react-ts
 cd frontend && pnpm install
 pnpm add react-router @tanstack/react-query i18next react-i18next lucide-react
 pnpm add -D vitest jsdom @testing-library/react @testing-library/user-event @testing-library/dom \
-  eslint-config-prettier eslint-plugin-oxlint
+  eslint-config-prettier eslint-plugin-oxlint eslint-plugin-jsx-a11y @eslint-react/eslint-plugin
 ```
 
 Plus the shared dependencies from `frontend.md` section 1. Delete the demo (`App.css`, the counter, `src/assets/react.svg`, `public/vite.svg`). Keep `StrictMode`. If the template offers the React Compiler, keep its default.
@@ -53,7 +53,9 @@ Vitest with `environment: 'jsdom'` (in `vite.config.ts` or `vitest.config.ts`). 
 
 - Readability limits and import boundaries: append the blocks from `frontend.md` section 8 to create-vite's ESLint config; `noUncheckedIndexedAccess` in `tsconfig.app.json`.
 - Scripts: split create-vite's `build` (`tsc -b && vite build`) into `type-check` = `tsc -b`, `build-only` = `vite build`, `build` = `pnpm type-check && pnpm build-only`; add `test:unit` = `vitest`.
-- ESLint: create-vite's config (typescript-eslint, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`) plus `eslint-config-prettier` and `eslint-plugin-oxlint` after them, so ESLint skips what oxlint checks, and the readability blocks of `frontend.md` section 8 at the very end. The hooks rules are errors, not warnings.
+- ESLint: create-vite's config (typescript-eslint, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`) plus `eslint-config-prettier` and `eslint-plugin-oxlint` after them, so ESLint skips what oxlint checks, and the readability blocks of `frontend.md` section 8 at the very end. The hooks rules are errors, not warnings, from `reactHooks.configs.flat.recommended` of a current `eslint-plugin-react-hooks` — it includes the React Compiler's rules (no mutation during render and the like). Add:
+  - `jsxA11y.flatConfigs.recommended` from `eslint-plugin-jsx-a11y` (alt texts, labelled form fields, keyboard access);
+  - from `@eslint-react/eslint-plugin` only these rules (names as in its current docs): `dom/no-dangerously-set-innerhtml` (no unescaped HTML — XSS; a real exception gets `eslint-disable-next-line … -- reason`), `no-leaked-conditional-rendering` (`{count && <List/>}` renders "0"; type-aware), `no-nested-component-definitions` (a component defined inside another loses its state on every render), `no-array-index-key`.
 - Prettier: create-vite writes no config; add a `.prettierrc.json` (e.g. `{ "semi": false, "singleQuote": true, "printWidth": 100 }`, as create-vue does for Vue) so `format:check` has rules.
 - knip: entry `src/main.tsx`, project `src/**/*.{ts,tsx}`, ignore `src/components/ui/**` and `src/api/schema.d.ts`.
 - Coverage excludes: `src/components/ui/**`, `src/api/schema.d.ts`, `src/main.tsx`, `**/*.d.ts`.

@@ -9,7 +9,7 @@ Read `frontend.md` first; this file only adds what is specific to Vue.
 pnpm create vue@latest frontend --typescript --router --pinia --vitest --eslint --prettier --force
 cd frontend && pnpm install
 pnpm add vue-i18n @vueuse/core @lucide/vue
-pnpm add -D @vue/test-utils jsdom
+pnpm add -D @vue/test-utils jsdom eslint-plugin-vuejs-accessibility
 ```
 
 Plus the shared dependencies from `frontend.md` section 1. Delete the demo components (HelloWorld, TheWelcome, icons, AboutView).
@@ -52,7 +52,11 @@ frontend/src/
 
 - Readability limits and import boundaries: append the blocks from `frontend.md` section 8 to create-vue's ESLint config; `noUncheckedIndexedAccess` in `tsconfig.app.json`.
 - `type-check` is create-vue's `vue-tsc --build`; `build-only` is `vite build`.
-- ESLint: create-vue's config (eslint-plugin-vue, `@vue/eslint-config-typescript`, Prettier skip-formatting, the oxlint plugin if offered) — keep it, remove `--fix` from the `lint` script.
+- ESLint: create-vue's config (eslint-plugin-vue, `@vue/eslint-config-typescript`, Prettier skip-formatting, the oxlint plugin if offered) — keep it, remove `--fix` from the `lint` script, and raise it:
+  - `pluginVue.configs['flat/strongly-recommended']` instead of `flat/essential` (declared emits, default props and other readability rules; Prettier handles the formatting ones);
+  - `...pluginVueA11y.configs['flat/recommended']` from `eslint-plugin-vuejs-accessibility` (alt texts, labelled form fields, keyboard access);
+  - in the `project/readability` block: `'vue/no-v-html': 'error'` (no unescaped HTML — XSS; a real exception gets `eslint-disable-next-line vue/no-v-html -- reason`) and `'vue/no-unused-properties': ['error', { groups: ['props', 'data', 'computed', 'methods', 'setup'] }]`.
+- `tsconfig.app.json`: `"vueCompilerOptions": { "strictTemplates": true }` — unknown components, props, events and directives in templates become type errors.
 - knip: entry `src/main.ts`, project `src/**/*.{ts,vue}`, ignore `src/components/ui/**` and `src/api/schema.d.ts`.
 - Coverage excludes: `src/components/ui/**`, `src/api/schema.d.ts`, `src/main.ts`, `**/*.d.ts`.
 - VS Code: keep `vue.volar` in `.vscode/extensions.json` (`[VUE]` line).

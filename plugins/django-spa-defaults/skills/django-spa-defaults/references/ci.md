@@ -71,7 +71,8 @@ Dev dependencies: the shared ones (`frontend.md` section 1) plus the variant's (
 "lint": "oxlint && eslint . && knip",
 "lint:fix": "oxlint --fix && eslint . --fix",
 "test:coverage": "vitest run --coverage",
-"check": "pnpm format:check && pnpm lint && pnpm type-check && pnpm test:coverage",
+"check": "pnpm format:check && pnpm lint && pnpm type-check && pnpm test:coverage && pnpm check:duplication",
+"check:duplication": "jscpd --config .jscpd.json",
 "size": "size-limit",
 "check:licenses": "node scripts/check-licenses.mjs",
 "api:types": "openapi-typescript openapi.json -o src/api/schema.d.ts && prettier --write src/api/schema.d.ts"

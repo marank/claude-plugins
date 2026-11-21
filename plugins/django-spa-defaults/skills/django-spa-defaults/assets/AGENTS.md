@@ -129,6 +129,18 @@ All commands live in the `justfile` (`just` lists them); CI and the VS Code task
 - A bug fix comes with a test that fails without it.
 - Frontend coverage gate: 90/90/85/85 (lines/statements/functions/branches).
 
+## Changing code (people and agents)
+
+- Never silence a check to get green: no blanket `# noqa`, `eslint-disable` or `@ts-ignore`; a
+  disable names the rule and the reason (`-- reason`), and only where the reason is real. Never lower
+  a threshold (coverage, complexity, duplication, bundle size) without the maintainer's OK.
+- No new dependency without asking; first look for what the project already has.
+- Reuse before writing: search `apps/core`, `src/utils`, the components and the glossary for an
+  existing helper before adding one. Copy-paste fails the duplication check.
+- Every test asserts something; no `.only` or skipped test is committed (lint rules enforce it).
+- In Claude Code a hook formats and lints every edited file (`.claude/settings.json`,
+  `scripts/lint_file.py`); fix what it reports in the same step.
+
 ## Readability
 
 - Comments explain why — decisions, constraints, edge cases — not what the code does. No

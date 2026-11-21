@@ -24,7 +24,9 @@ Shared dependencies for both variants:
 pnpm add openapi-fetch
 pnpm add -D openapi-typescript
 # quality gates (setup in ci.md): oxlint, knip, size-limit, coverage
-pnpm add -D oxlint knip size-limit @size-limit/file @vitest/coverage-v8 prettier
+pnpm add -D oxlint knip size-limit @size-limit/file @vitest/coverage-v8 prettier jscpd
+# lint rules that keep checks honest and tests real (section 8)
+pnpm add -D eslint-plugin-sonarjs @eslint-community/eslint-plugin-eslint-comments @vitest/eslint-plugin
 ```
 
 Fonts and icons are bundled (`@fontsource-variable/*`, Lucide for the framework), never loaded from a CDN — the CSP allows our origin only.
@@ -160,6 +162,8 @@ Limits on tangle, not on length: a long form or table component is fine, a funct
 
 ```ts
 import sonarjs from 'eslint-plugin-sonarjs'
+import comments from '@eslint-community/eslint-plugin-eslint-comments'
+import vitest from '@vitest/eslint-plugin'
 
 const apiClient = { group: ['@/api/client', '**/api/client'], message: 'Call the area modules in src/api/<area>.ts.' }
 const pages = { group: ['@/views/*', '@/pages/*', '**/views/*', '**/pages/*'], message: 'Shared code must not depend on a page.' }
@@ -168,6 +172,29 @@ const impure = { group: ['@/components/*', '**/components/*', '@/api/*', '!@/api
 
 export default [
   // …the generated config…
+  // No silenced checks: every disable names its rules and says why; unused ones fail.
+  { name: 'project/linter', linterOptions: { reportUnusedDisableDirectives: 'error' } },
+  {
+    name: 'project/no-silencing',
+    files: ['src/**/*.{ts,tsx,vue}'],
+    plugins: { '@eslint-community/eslint-comments': comments },
+    rules: {
+      '@eslint-community/eslint-comments/no-unlimited-disable': 'error',
+      '@eslint-community/eslint-comments/require-description': 'error',
+      '@typescript-eslint/ban-ts-comment': ['error', { 'ts-expect-error': 'allow-with-description' }],
+    },
+  },
+  // Tests that test: every test asserts, no `.only` or skipped test is committed.
+  {
+    name: 'project/tests',
+    files: ['src/**/*.{test,spec}.{ts,tsx}'],
+    plugins: { vitest },
+    rules: {
+      'vitest/expect-expect': 'error',
+      'vitest/no-focused-tests': 'error',
+      'vitest/no-disabled-tests': 'error',
+    },
+  },
   {
     name: 'project/readability',
     files: ['src/**/*.{ts,tsx,vue}'],
@@ -200,6 +227,8 @@ export default [
 ```
 
 `sonarjs/cognitive-complexity` needs `eslint-plugin-sonarjs` (`pnpm add -D eslint-plugin-sonarjs`); it measures how hard a function is to follow — nesting costs more than a flat list of cases. `no-unnecessary-condition` reports checks the types make pointless (`if (user)` when `user` can't be null) and needs type-aware linting: Vue — `vueTsConfigs.recommendedTypeChecked` instead of `vueTsConfigs.recommended` in `defineConfigWithVueTs`; React — `tseslint.configs.recommendedTypeChecked` with `languageOptions: { parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname } }`. The other type-aware rules: `no-floating-promises` and `no-misused-promises` report promises nobody awaits or catches (errors would vanish), `switch-exhaustiveness-check` makes a `switch` over a union handle every member (a new API enum value then fails the build, like `allValues`), `prefer-nullish-coalescing` asks for `??` instead of `||`, so `0` and `""` aren't replaced by the default. Delete an unnecessary check rather than disabling the rule; keep one only where data comes from outside the types, with an `eslint-disable-next-line` and the reason.
+
+The `no-silencing` block is what keeps AI-written code honest: a red check gets fixed, not switched off. `eslint-disable-next-line rule -- reason` and `@ts-expect-error reason` stay possible where the reason is real. Duplicated code (copy-paste instead of reusing a helper) is caught by jscpd across frontend and backend (`frontend/.jscpd.json` from the assets: at most 3 % duplicated, tests, migrations and vendored UI excluded), run as `check:duplication` in `pnpm check`.
 
 Deliberately not used: `max-lines`, `max-lines-per-function`, `max-statements`, `max-params` — they force splits that make code harder to follow. In `tsconfig.app.json` set `"noUncheckedIndexedAccess": true` (index access may be `undefined` until checked); in a new project it costs little and catches real bugs.
 

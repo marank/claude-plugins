@@ -10,7 +10,8 @@ Read this when the user wants a new project. `SKILL.md` has the conventions and 
 ├── frontend/           Vue 3 or React + Vite + TypeScript (pnpm)
 ├── docs/               VitePress, docs/de + docs/en (optional)
 ├── docker/             supervisord, nginx, start-nginx, healthcheck, worker, smoke-test, exit-on-fatal
-├── scripts/           sync_env.py (.env up to date with .env.example), check_changed.py (checks before a commit)
+├── scripts/           sync_env.py (.env up to date with .env.example), check_changed.py (checks before a commit), lint_file.py (agent hook)
+├── .claude/            settings.json: the hook that lints every file an agent edits
 ├── justfile            every command: dev, checks (= CI), API types, migrations, Docker
 ├── Dockerfile          SPA (+ docs) → python image: supervisord with nginx + gunicorn; also runs the worker
 ├── compose.yml         db (Postgres) + app + worker (hardened, image from ghcr.io); works with .env alone
@@ -73,7 +74,7 @@ Read `references/frontend.md` (shared: pnpm, dev port and proxy, API client and 
 
 ### 5. Docker and environment
 
-Read `references/docker.md`; copy `assets/Dockerfile`, `compose.yml`, `compose.dev.yml`, `docker/*`, `.env.example`, `.dockerignore`, `.gitignore`, `.gitattributes`, `.editorconfig`, `scripts/` (sync_env.py, check_changed.py), and fill the placeholders (researched versions and digests, project name, `<TIMEZONE>`). Keep the hardening of both containers — read-only root filesystem, no capabilities, unprivileged user, no setuid binaries, only `/data`, `/backups` (worker) and `/tmp` writable — supervisord as PID 1 of the app stopping it when a program keeps failing, and every runtime check in `docker/smoke-test`. `cp .env.example .env` so native verification works.
+Read `references/docker.md`; copy `assets/Dockerfile`, `compose.yml`, `compose.dev.yml`, `docker/*`, `.env.example`, `.dockerignore`, `.gitignore`, `.gitattributes`, `.editorconfig`, `scripts/` (sync_env.py, check_changed.py, lint_file.py), `.claude/settings.json`, and fill the placeholders (researched versions and digests, project name, `<TIMEZONE>`). Keep the hardening of both containers — read-only root filesystem, no capabilities, unprivileged user, no setuid binaries, only `/data`, `/backups` (worker) and `/tmp` writable — supervisord as PID 1 of the app stopping it when a program keeps failing, and every runtime check in `docker/smoke-test`. `cp .env.example .env` so native verification works.
 
 ### 6. justfile, CI, releases and Dependabot
 
