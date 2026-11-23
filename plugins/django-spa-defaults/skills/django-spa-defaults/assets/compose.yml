@@ -41,14 +41,22 @@ services:
       DEBUG: "false"
       DB_HOST: db
       DB_PORT: "5432"
+      # --- project: environment ---
+      # --- end ---
     ports:
       - "${APP_BIND:-8080}:8080"
     volumes:
       - app-data:/data
+      # [WORKER_PROGRAM+BACKUP_JOB]
+      - backups:/backups
+      # [/WORKER_PROGRAM+BACKUP_JOB]
     depends_on:
       db:
         condition: service_healthy
+      # --- project: depends_on ---
+      # --- end ---
 
+  # [WORKER_SERVICE]
   # Background jobs (mails, the nightly backup, cleanup): same image, own container, so it
   # has its own logs, restarts and health check. Waits until the app has migrated.
   worker:
@@ -65,10 +73,12 @@ services:
       DB_PORT: "5432"
     volumes:
       - app-data:/data
-      # Nightly pg_dump (BACKUP_TIME, BACKUP_KEEP_DAYS). Manual dump:
+      # [BACKUP_JOB]
+      # Nightly pg_dump and media archive (BACKUP_TIME, BACKUP_KEEP_DAYS). Manual dump:
       #   docker compose exec worker python manage.py backup_database
       # Copy dumps off the host: docker compose cp worker:/backups ./backups
       - backups:/backups
+      # [/BACKUP_JOB]
     healthcheck:
       # The image's HTTP health check is for the app; this checks the worker's database link.
       test: ["CMD", "python", "manage.py", "procrastinate", "healthchecks"]
@@ -78,6 +88,41 @@ services:
     depends_on:
       db:
         condition: service_healthy
+  # [/WORKER_SERVICE]
+
+  # [BACKUP_CONTAINER]
+  # Nightly database dump + media snapshot into the "backups" volume (docker/backup.sh, which has
+  # to lie next to this file). Manual backup:  docker compose exec backup sh /backup.sh now
+  # Copy backups off the host:  docker compose cp backup:/var/lib/postgresql/backups ./backups
+  backup:
+    <<: *hardened
+    image: postgres:<PG_MAJOR>-alpine
+    restart: unless-stopped
+    entrypoint: ["sh", "/backup.sh"]
+    user: postgres
+    environment:
+      PGHOST: db
+      PGDATABASE: ${DB_NAME:-<project>}
+      PGUSER: ${DB_USER:-<project>}
+      PGPASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      TZ: ${TIME_ZONE:-UTC}
+      BACKUP_TIME: ${BACKUP_TIME:-02:30}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - ./docker/backup.sh:/backup.sh:ro
+      # The image's postgres-owned home, so the new volume is writable for the postgres user
+      # without any capabilities.
+      - backups:/var/lib/postgresql
+      # Uploaded media (MEDIA_ROOT = DATA_DIR/media), read-only: only snapshotted.
+      - app-data:/appdata:ro
+    depends_on:
+      db:
+        condition: service_healthy
+  # [/BACKUP_CONTAINER]
+
+  # Further services of the project (kept outside the template comparison, DOCKER-12).
+  # --- project: services ---
+  # --- end ---
 
 volumes:
   db-data:

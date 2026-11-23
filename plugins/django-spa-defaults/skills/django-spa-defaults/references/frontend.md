@@ -154,7 +154,9 @@ Coverage gate 90/90/85/85 (lines/statements/functions/branches) in the Vitest co
 
 The full script set (`preinstall`, `check`, `size`, `check:licenses`, `api:types`, …) is in ci.md section 4; the variant file says which scaffolder scripts it maps to. Commit `openapi.json` and `src/api/schema.d.ts` so `pnpm build` in Docker doesn't need a running backend.
 
-pnpm may block dependency build scripts (e.g. esbuild) until approved; allow the ones the toolchain needs (`pnpm approve-builds`, stored in `pnpm-workspace.yaml`) and commit `pnpm-workspace.yaml`, so `pnpm install --frozen-lockfile` in Docker and CI doesn't skip them.
+pnpm may block dependency build scripts (e.g. esbuild) until approved; allow the ones the toolchain needs (`pnpm approve-builds`, stored in `pnpm-workspace.yaml`) and commit `pnpm-workspace.yaml`, so `pnpm install --frozen-lockfile` in Docker and CI doesn't skip them. Approve in `allowBuilds` (`esbuild: true`), which replaced `onlyBuiltDependencies`.
+
+Two pnpm defaults are supply-chain protection; leave them on (FE-24): `minimumReleaseAge` (1440 minutes: a version younger than a day is not installed, transitive dependencies included) and `strictDepBuilds` (an unreviewed build script fails the install). A dependency that needs an urgent fix inside the window goes into `minimumReleaseAgeExclude`; don't set the age to 0. Longer (say 3 days = `4320`) is stricter, but with an explicit value `minimumReleaseAgeStrict` defaults to true and resolution fails when no version in the range is old enough, so only raise it knowingly. Settings per pnpm.io/settings (checked 2026-11-23).
 
 ## 8. Readability limits
 
@@ -166,7 +168,7 @@ import comments from '@eslint-community/eslint-plugin-eslint-comments'
 import vitest from '@vitest/eslint-plugin'
 
 const apiClient = { group: ['@/api/client', '**/api/client'], message: 'Call the area modules in src/api/<area>.ts.' }
-const pages = { group: ['@/views/*', '@/pages/*', '**/views/*', '**/pages/*'], message: 'Shared code must not depend on a page.' }
+const pages = { group: ['@/views/*', '@/pages/*', '@/features/*', '**/views/*', '**/pages/*', '**/features/*'], message: 'Shared code must not depend on a page or feature.' }
 // utils may still import the generated payload types (@/api/types).
 const impure = { group: ['@/components/*', '**/components/*', '@/api/*', '!@/api/types'], message: 'utils stay pure: no components, no API calls.' }
 

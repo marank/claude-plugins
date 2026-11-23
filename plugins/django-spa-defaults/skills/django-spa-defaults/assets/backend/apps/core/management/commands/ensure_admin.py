@@ -23,7 +23,7 @@ class Command(BaseCommand):
             return
 
         User = get_user_model()
-        # Case-insensitive like the unique constraint: ADMIN_USERNAME=Admin finds an existing "admin".
+        # Case-insensitive like the unique constraint: ADMIN_USERNAME=Admin finds "admin".
         if User.objects.filter(**{f"{User.USERNAME_FIELD}__iexact": username}).exists():
             self.stdout.write(f"Admin user {username!r} already exists.")
             return

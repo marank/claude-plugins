@@ -17,7 +17,9 @@ from procrastinate.exceptions import AlreadyEnqueued
 from procrastinate.tasks import Task
 
 
-def defer[R, **A](task: Task[..., R, A], *, queueing_lock: str | None = None, **kwargs: Any) -> None:
+def defer[R, **A](
+    task: Task[..., R, A], *, queueing_lock: str | None = None, **kwargs: Any
+) -> None:
     """Run ``task(**kwargs)`` in the background.
 
     With ``queueing_lock`` the job is skipped while one with the same lock still waits in

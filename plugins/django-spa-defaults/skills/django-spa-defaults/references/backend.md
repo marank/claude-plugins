@@ -16,7 +16,7 @@ Versions are whatever the registries return *today* (see scaffold.md step 2). Pi
 
 ```bash
 mkdir backend && cd backend
-uv init --app --no-workspace --python <researched-python> --name <project>-backend
+uv init --app --no-workspace --python <researched-python> --name <project>-backend   # writes .python-version; requires-python = ">=<same minor>"
 rm -f main.py hello.py            # uv init sample file, if created
 uv add "django[argon2]" "psycopg[binary]" gunicorn "procrastinate[django]" django-stubs-ext
                                    # supervisord is installed in the image, not here
@@ -41,7 +41,7 @@ backend/
 │   ├── settings_test.py    tests: dev settings + fast password hasher (settings.md 4b)
 │   ├── env.py              env helpers (bool/list/int, APP_URLS parsing, SECRET_KEY guard)
 │   ├── api.py              API root: mounts routers, exposes urlpatterns for /api/
-│   ├── urls.py             /api/ + /django-admin/ (signs in through the app's login)
+│   ├── urls.py             /api/ + /django-admin/ with ADMIN_ENABLED (signs in through the app's login)
 │   ├── asgi.py, wsgi.py
 ├── locale/de/LC_MESSAGES/  django.po (committed; .mo built in Docker and CI)
 ├── scripts/                check_licenses.py, check_openapi.py, check_translations.py (run by `just check-backend`)
@@ -121,16 +121,26 @@ Check the current Ninja docs for the CSRF keyword — its handling changed betwe
 
 ```python
 # apps/core/api/health.py
+import logging
+
+from django.db import OperationalError, connection
 from ninja import Router
 
+logger = logging.getLogger(__name__)
 router = Router(tags=["health"])
 
-@router.get("", auth=None)
+@router.get("", auth=None, response={200: dict, 503: dict})
 def health(request):
-    return {"status": "ok"}
+    """Up only when the database answers: a container without its database isn't healthy."""
+    try:
+        connection.ensure_connection()
+    except OperationalError:
+        logger.exception("Health check: the database does not answer")
+        return 503, {"status": "database unavailable"}
+    return 200, {"status": "ok"}
 ```
 
-The health route must resolve to exactly `/api/health` (no trailing slash, no auth) — the SSL-redirect exemption, the Docker healthcheck and the CI smoke test all use that path. For DRF: `HealthView(APIView)` with `authentication_classes = []` and `permission_classes = [AllowAny]`.
+The health route must resolve to exactly `/api/health` (no trailing slash, no auth) — the SSL-redirect exemption, the Docker healthcheck and the CI smoke test all use that path. For DRF: `HealthView(APIView)` with `authentication_classes = []` and `permission_classes = [AllowAny]`, the same database check and `Response(..., status=503)`. The 503 is deliberate: Docker marks the app container unhealthy while the database is down, and the smoke test and a monitoring probe see it too (check the current Ninja docs for how a response with several status codes is declared).
 
 Resource routers live in `apps/<feature>/api/<resource>.py`, schemas in `apps/<feature>/schemas/<resource>.py` (`Schema`/`ModelSchema`, separate `…In`, `…Out`, `…Patch`). Use `uuid.UUID` for path params (`/{project_id}`).
 
@@ -211,8 +221,8 @@ license = "<LICENSE_ID>"   # proprietary: "LicenseRef-Proprietary"
 package = false
 
 [tool.ruff]
-line-length = 110
-target-version = "<py3xx matching chosen Python>"
+line-length = 100          # as Prettier's printWidth (REPO-25)
+target-version = "<py3xx matching chosen Python>"   # same minor as .python-version, requires-python and the Dockerfile (BE-24)
 extend-exclude = ["*/migrations/*"]
 
 [tool.ruff.lint]

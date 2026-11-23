@@ -21,7 +21,7 @@ step() { echo; echo "=== $1"; }
 fail() { echo "FAIL: $1"; failures+=("$1"); }
 
 step "Template leftovers"
-leftovers=$(grep -rnE '<(project|Project|PG_MAJOR|NODE_LTS|PYTHON|UV|PNPM|DEBIAN|TRIVY|TIMEZONE|UNAUTHENTICATED_STATUS|OPENAPI_EXPORT_COMMAND|DEV_PORT|SUPERVISOR|owner|API_LIBRARY|UI_LIBRARY|SCHEMA_DIR|LICENSE_ID|FRONTEND|SHA|DIGEST|VERSION|ACTIONLINT|ZIZMOR|JUST|CONDUCT_EMAIL|PLUGIN_VERSION|DATE|RELEASES|CONTRIBUTIONS|ADRS|README_[A-Z_]+)>|\[(NINJA|DRF|DOCS|VUE|REACT|TAILWIND|RELEASE_PLEASE|MANUAL_RELEASES|EXTERNAL|TEAM_ONLY|BACKEND_DE|BACKEND_EN|ADRS|ARM64|NO_DOCS|/)\]|Template notes for the skill' \
+leftovers=$(grep -rnE '<(project|Project|PG_MAJOR|NODE_LTS|PYTHON|UV|PNPM|DEBIAN|TRIVY|TIMEZONE|UNAUTHENTICATED_STATUS|OPENAPI_EXPORT_COMMAND|DEV_PORT|SUPERVISOR|owner|API_LIBRARY|UI_LIBRARY|SCHEMA_DIR|LICENSE_ID|FRONTEND|SHA|DIGEST|VERSION|ACTIONLINT|ZIZMOR|JUST|CONDUCT_EMAIL|PLUGIN_VERSION|DATE|RELEASES|CONTRIBUTIONS|ADRS|README_[A-Z_]+)>|\[(NINJA|DRF|DOCS|VUE|REACT|TAILWIND|RELEASE_PLEASE|MANUAL_RELEASES|EXTERNAL|TEAM_ONLY|BACKEND_DE|BACKEND_EN|ADRS|ARM64|NO_DOCS|WSGI|ASGI|WORKER_SERVICE|WORKER_PROGRAM|BACKUP_JOB|BACKUP_CONTAINER|[A-Z_]+\+[A-Z_]+|/[A-Z_+]*)\]|Template notes for the skill' \
   --exclude-dir=node_modules --exclude-dir=.venv --exclude-dir=.git . || true)
 [ -n "$leftovers" ] && { echo "$leftovers"; fail "template placeholders left"; } || echo "none"
 if grep -rn "django-insecure" backend/config/settings.py; then fail "generated insecure SECRET_KEY still in settings.py"; fi
@@ -77,7 +77,7 @@ if [ "$docker_mode" = "--docker" ]; then
   else
     env_backup=$(mktemp); cp .env "$env_backup"
     secret=$(py -c "import secrets; print(secrets.token_urlsafe(50))")
-    sed -i "s#^SECRET_KEY=.*#SECRET_KEY=$secret#; s#^ADMIN_PASSWORD=.*#ADMIN_PASSWORD=verify-$secret#; s#^DB_PASSWORD=.*#DB_PASSWORD=verify-db-pw#" .env
+    sed -i "s#^SECRET_KEY=.*#SECRET_KEY=$secret#; s#^ADMIN_PASSWORD=.*#ADMIN_PASSWORD=verify-$secret#; s#^DB_PASSWORD=.*#DB_PASSWORD=verify-db-pw#; s#^ADMIN_ENABLED=.*#ADMIN_ENABLED=true#" .env
     # compose.yml runs the registry image; verify the image built from this checkout.
     export APP_IMAGE="verify-scaffold-local:latest"
     if docker build -t "$APP_IMAGE" . && docker compose up -d; then

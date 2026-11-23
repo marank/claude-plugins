@@ -1079,6 +1079,252 @@ def fe_19(r: Repo) -> Result:
     return verdict(problems)
 
 
+# --- Target versions, one Python, line length, docker/ names (1.9.0) ------------------------
+
+
+def baseline() -> dict[str, str]:
+    """The table "Target versions" in checklist.md: component (lower case) -> lowest version."""
+    text = CHECKLIST.read_text(encoding="utf-8")
+    return {m.group(1).lower(): m.group(2)
+            for m in re.finditer(r"^\| (Python|Node\.js|pnpm|uv) \| (\d+(?:\.\d+)*) \|", text, re.M)}
+
+
+def version_tuple(version: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in re.findall(r"\d+", version))
+
+
+def at_least(found: str, floor: str) -> bool:
+    """`3.16` and `3.15.2` are at least `3.15`: compared as far as the floor names parts."""
+    wanted = version_tuple(floor)
+    return version_tuple(found)[: len(wanted)] >= wanted
+
+
+def dockerfile_versions(r: Repo, pattern: str) -> list[str]:
+    return re.findall(pattern, r.read("Dockerfile"), re.M)
+
+
+def python_minors(r: Repo) -> dict[str, str]:
+    """Where the repo names its Python minor -> the minor."""
+    found = {}
+    if tags := dockerfile_versions(r, r"^FROM\s+(?:--\S+\s+)*python:(\d+\.\d+)"):
+        found["Dockerfile python image"] = tags[0]
+    if m := re.match(r"\s*(\d+\.\d+)", r.read("backend/.python-version")):
+        found["backend/.python-version"] = m.group(1)
+    requires = str(r.pyproject().get("project", {}).get("requires-python", ""))
+    if m := re.search(r"(?:>=|==|~=)\s*(\d+\.\d+)", requires):
+        found["requires-python"] = m.group(1)
+    ruff = r.pyproject().get("tool", {}).get("ruff", {})
+    if m := re.fullmatch(r"py(\d)(\d+)", str(ruff.get("target-version", ""))):
+        found["ruff target-version"] = f"{m.group(1)}.{m.group(2)}"
+    return found
+
+
+def be_24(r: Repo) -> Result:
+    if not r.exists("backend/pyproject.toml"):
+        return Result("n/a")
+    found = python_minors(r)
+    wanted = ["backend/.python-version", "requires-python", "ruff target-version"] + (
+        ["Dockerfile python image"] if r.has_docker() else [])
+    problems = [f"{name} is not set" for name in wanted if name not in found]
+    if len(set(found.values())) > 1:
+        problems.append("different Python minors: " + ", ".join(f"{k} {v}" for k, v in found.items()))
+    return verdict(problems)
+
+
+def be_25(r: Repo) -> Result:
+    if not r.has_docker():
+        return Result("n/a")
+    floor = baseline()["python"]
+    tags = dockerfile_versions(r, r"^FROM\s+(?:--\S+\s+)*python:(\d+\.\d+)")
+    if not tags:
+        return Result("fail", ["the Dockerfile has no python: image"])
+    return verdict([f"python:{t} in the Dockerfile, the target version is {floor}" for t in sorted(set(tags)) if not at_least(t, floor)])
+
+
+def be_26(r: Repo) -> Result:
+    if not r.has_docker():
+        return Result("n/a")
+    floor = baseline()["uv"]
+    tags = dockerfile_versions(r, r"ghcr\.io/astral-sh/uv:(\d+(?:\.\d+)*)")
+    if not tags:
+        return Result("fail", ["the Dockerfile pins no ghcr.io/astral-sh/uv:<version> image"])
+    return verdict([f"uv {t} in the Dockerfile, the target version is {floor}" for t in sorted(set(tags)) if not at_least(t, floor)])
+
+
+def node_allows(spec: str, major: int) -> bool:
+    """Whether an `engines.node` range (`^22 || >=24`, `>=26 <28`) allows a Node major."""
+    tests = {"": lambda n: major == n, "=": lambda n: major == n, "^": lambda n: major == n,
+             "~": lambda n: major == n, ">=": lambda n: major >= n, ">": lambda n: major > n,
+             "<=": lambda n: major <= n, "<": lambda n: major < n}
+    for alternative in spec.split("||"):
+        tokens = [m for t in alternative.split() if (m := re.match(r"(>=|<=|>|<|\^|~|=)?v?(\d+)", t))]
+        if tokens and all(tests[m.group(1) or ""](int(m.group(2))) for m in tokens):
+            return True
+    return False
+
+
+def node_majors(r: Repo) -> list[int]:
+    return [int(v) for v in dockerfile_versions(r, r"^FROM\s+(?:--\S+\s+)*node:(\d+)")]
+
+
+def fe_20(r: Repo) -> Result:
+    package = json.loads(r.read("frontend/package.json") or "{}")
+    spec = str(package.get("engines", {}).get("node", ""))
+    if not spec:
+        return Result("fail", ["frontend/package.json sets no engines.node"])
+    return verdict([f"the Dockerfile's node:{m} is not allowed by engines.node \"{spec}\""
+                    for m in sorted(set(node_majors(r))) if not node_allows(spec, m)])
+
+
+def fe_21(r: Repo) -> Result:
+    if not r.has_docker():
+        return Result("n/a")
+    floor = baseline()["node.js"]
+    majors = node_majors(r)
+    if not majors:
+        return Result("fail", ["the Dockerfile has no node: image"])
+    return verdict([f"node:{m} in the Dockerfile, the target version is {floor}" for m in sorted(set(majors)) if not at_least(str(m), floor)])
+
+
+def fe_22(r: Repo) -> Result:
+    if r.package_manager() != "pnpm":
+        return Result("n/a")
+    floor = baseline()["pnpm"]
+    package = json.loads(r.read("frontend/package.json") or "{}")
+    m = re.match(r"pnpm@(\d+(?:\.\d+)*)", str(package.get("packageManager", "")))
+    if not m:
+        return Result("fail", ["frontend/package.json sets no packageManager for pnpm"])
+    return verdict([] if at_least(m.group(1), floor) else [f"pnpm {m.group(1)}, the target version is {floor}"])
+
+
+def fe_23(r: Repo) -> Result:
+    if not r.path("frontend/src/features").is_dir():
+        return Result("n/a")
+    return verdict([] if re.search(r"features", r.frontend_lint_text())
+                   else ["the import boundaries (no-restricted-imports) do not mention features/"])
+
+
+def fe_24(r: Repo) -> Result:
+    if not r.has_frontend():
+        return Result("n/a")
+    text = "".join(p.read_text(encoding="utf-8", errors="replace") for p in r.files("frontend/pnpm-workspace.yaml"))
+    problems = []
+    if re.search(r"^minimumReleaseAge:\s*0\s*(#.*)?$", text, re.M):
+        problems.append("minimumReleaseAge is 0 (new releases are installed at once)")
+    if re.search(r"^strictDepBuilds:\s*false\b", text, re.M):
+        problems.append("strictDepBuilds is false (unreviewed build scripts do not fail the install)")
+    return verdict(problems)
+
+
+def repo_25(r: Repo) -> Result:
+    problems = []
+    if r.exists("backend/pyproject.toml"):
+        width = r.pyproject().get("tool", {}).get("ruff", {}).get("line-length")
+        if width != 100:
+            problems.append(f"ruff line-length is {width if width is not None else 'not set (88)'}, not 100")
+    if r.has_frontend():
+        files = r.files("frontend/.prettierrc*") + r.files("frontend/prettier.config.*")
+        text = "".join(p.read_text(encoding="utf-8", errors="replace") for p in files)
+        text += json.dumps(json.loads(r.read("frontend/package.json") or "{}").get("prettier", {}))
+        m = re.search(r"printWidth['\"]?\s*:\s*(\d+)", text)
+        if not m or m.group(1) != "100":
+            problems.append(f"Prettier printWidth is {m.group(1) if m else 'not set (80)'}, not 100")
+    return verdict(problems)
+
+
+def repo_24(r: Repo) -> Result:
+    if open_question := not_recorded(r, RELEASES):
+        return open_question
+    if decision(r, RELEASES) == "by hand":
+        return Result("n/a")
+    ok = re.search(r"check[-_]pr[-_]title|semantic-pull-request|commitlint|pull_request\.title", r.workflows_text())
+    return verdict([] if ok else ["no CI job checks that pull request titles are Conventional Commits"])
+
+
+def sec_08(r: Repo) -> Result:
+    config = "".join(p.read_text(encoding="utf-8", errors="replace") for p in r.files("backend/config/*.py"))
+    if "django.contrib.admin" not in config:
+        return Result("n/a")
+    problems = [] if re.search(r"env_bool\(\s*[\"']ADMIN_ENABLED[\"']\s*,\s*False", config) else [
+        "the admin is not behind ADMIN_ENABLED with the default False (env_bool(\"ADMIN_ENABLED\", False))"]
+    if not re.search(r"[\"']django-admin/", config):
+        problems.append("the admin is not served under /django-admin")
+    return verdict(problems)
+
+
+def sec_09(r: Repo) -> Result:
+    docker = "".join(p.read_text(encoding="utf-8", errors="replace") for p in r.files("docker/*"))
+    if "TRUSTED_PROXIES" not in docker:
+        return Result("n/a")
+    code = "".join(p.read_text(encoding="utf-8", errors="replace") for p in r.files("backend/**/*.py")
+                   if "TRUSTED_PROXIES" in p.read_text(encoding="utf-8", errors="replace"))
+    ok = "ip_network" in code and re.search(r"prefixlen\s*==\s*0", code)
+    return verdict([] if ok else ["TRUSTED_PROXIES is not validated (IP/CIDR, no range that covers every address)"])
+
+
+def docker_11(r: Repo) -> Result:
+    conf = "".join(p.read_text(encoding="utf-8", errors="replace") for p in r.files("docker/**/*supervisord*"))
+    if not conf or "gunicorn" not in conf:
+        return Result("n/a")
+    problems = []
+    gconf = "".join(p.read_text(encoding="utf-8", errors="replace") for p in r.files("docker/gunicorn.conf.py"))
+    if not gconf:
+        problems.append("docker/gunicorn.conf.py is missing")
+    if "gunicorn.conf.py" not in conf:
+        problems.append("supervisord does not start gunicorn with gunicorn.conf.py")
+    if re.search(r"forwarded[-_]allow[-_]ips\W+['\"]?\*", conf + gconf):
+        problems.append("gunicorn trusts X-Forwarded-* from every address (forwarded_allow_ips = *)")
+    return verdict(problems)
+
+
+def docker_12(r: Repo) -> Result:
+    if not r.has_docker():
+        return Result("n/a")
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import docker_compare
+    compose = r.read("compose.yml")
+    name = re.search(r"^name:\s*([\w.-]+)", compose, re.M)
+    owner = re.search(r"ghcr\.io/([\w.-]+)/", compose)
+    problems, notes = docker_compare.compare(SKILL_DIR / "assets", r.read, r.exists,
+                                             name.group(1) if name else r.root.name, owner.group(1) if owner else None)
+    result = verdict(problems)
+    result.details += [f"note: {n}" for n in notes]  # tuning values: shown, never binding
+    return result
+
+
+DOCKER_ALWAYS = ("healthcheck", "smoke-test")
+DOCKER_NGINX = ("nginx.conf", "security_headers.conf", "django_proxy.conf", "app.conf.template", "start-nginx")
+DOCKER_SUPERVISORD = ("entrypoint.sh", "supervisord.conf", "exit-on-fatal")
+DOCKER_RENAMED = {"nginx-security-headers.conf": "security_headers.conf", "exit_on_fatal.py": "exit-on-fatal",
+                  "exit-on-fatal.py": "exit-on-fatal", "healthcheck.sh": "healthcheck", "smoke-test.sh": "smoke-test",
+                  "start-nginx.sh": "start-nginx", "worker.sh": "worker", "supervisord.ini": "supervisord.conf"}
+
+
+def docker_09(r: Repo) -> Result:
+    if not r.has_docker():
+        return Result("n/a")
+    names = {p.relative_to(r.path("docker")).as_posix() for p in r.files("docker/**/*")}
+    problems = [f"docker/{old} is called docker/{new} in the template" for old, new in DOCKER_RENAMED.items() if old in names]
+    uses_nginx = bool(re.search(r"nginx", r.read("Dockerfile"))) or any("nginx" in n for n in names)
+    uses_supervisord = any("supervisord" in n for n in names) or "supervisord" in r.read("Dockerfile")
+    compose = r.read("compose.yml") or r.read("docker-compose.yml")
+    wanted = list(DOCKER_ALWAYS)
+    wanted += DOCKER_NGINX if uses_nginx else ()
+    wanted += DOCKER_SUPERVISORD if uses_supervisord else ()
+    wanted += ("worker",) if re.search(r"^  [\w-]*worker[\w-]*:", compose, re.M) else ()
+    wanted += ("backup.sh",) if re.search(r"^  backup:", compose, re.M) else ()
+    renamed_to = {new for old, new in DOCKER_RENAMED.items() if old in names}
+    problems += [f"docker/{n} is missing" for n in wanted if n not in names and n not in renamed_to]
+    return verdict(problems)
+
+
+def docker_10(r: Repo) -> Result:
+    if not r.has_docker():
+        return Result("n/a")
+    user = re.findall(r"^USER\s+(\S+)", r.read("Dockerfile"), re.M)
+    return verdict([] if user and user[-1].split(":")[0] == "app" else [f"the container user is {user[-1] if user else 'not set'}, not app"])
+
+
 README_ORDER = ("features", "quick start", "documentation", "contributing", "license")
 README_ELSEWHERE = ("tech stack", "stack", "project structure", "structure", "configuration", "development",
                     "architecture", "deployment", "releases", "releases and ci", "authentication")
@@ -1221,6 +1467,11 @@ def main() -> int:
             ids = [row["id"] for row in rows if row["status"] == status]
             if ids:
                 print(f"{status.upper():<9} {' '.join(ids)}")
+        for row in rows:
+            if row["status"] == "pass" and row["details"]:  # passes that carry notes
+                print(f"{'NOTE':<9} {row['id']:<10} {row['level']:<6}")
+                for detail in row["details"]:
+                    print(f"{'':27}{detail}")
         for row in rows:
             if row["status"] in ("pass", "n/a"):
                 continue

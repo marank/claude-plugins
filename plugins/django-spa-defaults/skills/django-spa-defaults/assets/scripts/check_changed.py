@@ -39,6 +39,14 @@ def run(cwd: str, *cmd: str) -> bool:
     return subprocess.run(cmd, cwd=ROOT / cwd, check=False).returncode == 0
 
 
+def has_recipe(name: str) -> bool:
+    """Whether the justfile has this recipe (a project without VitePress docs has no check-docs)."""
+    justfile = ROOT / "justfile"
+    return justfile.is_file() and any(
+        line.startswith(f"{name}:") or line.startswith(f"{name} ") for line in justfile.read_text(encoding="utf-8").splitlines()
+    )
+
+
 def inside(files: list[str], folder: str, suffixes: tuple[str, ...] = ()) -> list[str]:
     return [f.removeprefix(folder) for f in files if f.startswith(folder) and f.endswith(suffixes or "")]
 
@@ -84,9 +92,9 @@ def main() -> int:
         print("Nothing changed since the last commit.")
         return 0
     plan = [("backend", s) for s in backend_steps(files)] + [("frontend", s) for s in frontend_steps(files)]
-    if inside(files, "docs/"):
+    if inside(files, "docs/") and has_recipe("check-docs"):
         plan.append((".", ("just", "check-docs")))
-    if inside(files, ".github/workflows/"):
+    if inside(files, ".github/workflows/") and has_recipe("check-workflows"):
         plan.append((".", ("just", "check-workflows")))
     failed = [" ".join(step) for cwd, step in plan if not run(cwd, *step)]
     if any(f.startswith(("Dockerfile", "docker/", "compose")) for f in files):

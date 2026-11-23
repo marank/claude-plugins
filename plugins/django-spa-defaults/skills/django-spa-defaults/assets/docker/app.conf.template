@@ -12,6 +12,13 @@ map "$from_trusted_proxy:$http_x_forwarded_proto" $client_proto {
     default $scheme;
 }
 
+# [ASGI]
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ""      close;
+}
+# [/ASGI]
+
 server {
     listen 8080;
     client_max_body_size 25m;
@@ -32,6 +39,20 @@ ${REAL_IP_CONFIG}
     location ~ ^/django-admin(/|$) {
         include /etc/nginx/django_proxy.conf;
     }
+
+    # [ASGI] WebSockets (the path is the project's choice); longer than the app's heartbeat.
+    location /ws/ {
+        include /etc/nginx/django_proxy.conf;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_read_timeout 120s;
+        proxy_send_timeout 120s;
+    }
+    # [/ASGI]
+
+    # Locations of the project (kept outside the template comparison, DOCKER-12).
+    # --- project: locations ---
+    # --- end ---
 
     location /django-static/ {
         alias /app/staticfiles/;

@@ -162,8 +162,9 @@ if JOB_QUEUE:
 The tasks live in `apps/core/tasks.py` (asset; procrastinate discovers every app's `tasks.py`), and services defer them only through `apps.core.jobs.defer(task, **kwargs)` (asset), never with `task.defer()` directly — `defer` picks the queue or the in-process run. In Docker the worker is its own compose service from the same image (`docker/worker`). Natively there is no worker; periodic jobs (the nightly backup, cleanup) simply don't run there. Whoever runs natively against PostgreSQL (`compose.dev.yml`) starts `uv run python manage.py procrastinate worker` by hand if they need jobs.
 
 ```python
-# Nightly pg_dump by the worker container (apps/core/services/backups.py) into BACKUP_DIR, the
-# "backups" volume in the image (/backups). Empty switches the nightly dump off.
+# Nightly pg_dump and an archive of the uploads (MEDIA_ROOT) by the worker container
+# (apps/core/services/backups.py) into BACKUP_DIR, the "backups" volume in the image
+# (/backups). Empty switches the nightly backup off.
 BACKUP_DIR = env_str("BACKUP_DIR", "")
 # Time of day in TIME_ZONE. Not between 02:00 and 03:00: daylight saving time skips
 # that hour once a year (no backup) and repeats it once (two backups).
@@ -243,9 +244,17 @@ LOGGING = {
 
 ## 9. urls.py
 
-Replace the generated `urlpatterns` (keep the generated docstring if you like):
+First the switch in `settings.py` (next to `DEBUG`): the Django admin is off unless an operator turns it on, so a stock install exposes no extra login surface (SEC-08).
 
 ```python
+# The Django admin at /django-admin (staff users). Off by default.
+ADMIN_ENABLED = env_bool("ADMIN_ENABLED", False)
+```
+
+Then replace the generated `urlpatterns` (keep the generated docstring if you like):
+
+```python
+from django.conf import settings
 from django.contrib import admin
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
@@ -261,11 +270,14 @@ def admin_login(request: HttpRequest, extra_context: object = None) -> HttpRespo
     return redirect(f"/login?{urlencode({'next': request.GET.get('next', '/django-admin/')})}")
 
 
-admin.site.login = admin_login  # type: ignore[method-assign]  # the documented way to swap the view
-
-# The Django admin lives under /django-admin, so /admin stays free for the SPA's own administration.
-urlpatterns = [path("django-admin/", admin.site.urls), *api_urlpatterns]
+urlpatterns = [*api_urlpatterns]
+if settings.ADMIN_ENABLED:
+    admin.site.login = admin_login  # type: ignore[method-assign]  # the documented way to swap the view
+    # The Django admin lives under /django-admin, so /admin stays free for the SPA's own administration.
+    urlpatterns.insert(0, path("django-admin/", admin.site.urls))
 ```
 
+Without `ADMIN_ENABLED` `/django-admin/…` answers 404 (nginx forwards it, Django has no such route); `django.contrib.admin` stays in `INSTALLED_APPS`, so the models' `admin/` modules and the static files keep working.
 
-After patching, `uv run python manage.py check` must pass, the admin login page must render without CSP violations (check in a browser once if possible; otherwise switch `SECURE_CSP` to `SECURE_CSP_REPORT_ONLY` and say so) and `grep -n "django-insecure" config/settings.py` must find nothing.
+
+After patching, `uv run python manage.py check` must pass, with `ADMIN_ENABLED=true` the admin login redirect must work and the admin pages must render without CSP violations (check in a browser once if possible; otherwise switch `SECURE_CSP` to `SECURE_CSP_REPORT_ONLY` and say so) and `grep -n "django-insecure" config/settings.py` must find nothing.

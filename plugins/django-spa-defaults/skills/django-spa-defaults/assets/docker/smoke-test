@@ -2,10 +2,10 @@
 # Smoke test of a running container, run inside it — the one place for these probes:
 #   CI:             docker exec <container> sh /usr/local/bin/smoke-test app|worker
 #   verify script:  docker compose exec -T <service> sh /usr/local/bin/smoke-test app|worker
-# app:    nginx serves the SPA, static files and the API, the Django admin signs in through the
-#         app's login, every
-#         supervisord program (gunicorn, nginx) runs.
-# worker: the job worker runs and a backup can be written.
+# app:    nginx serves the SPA, static files and the API, the Django admin (when ADMIN_ENABLED)
+#         signs in through the app's login and is a 404 otherwise, every supervisord program
+#         (gunicorn, nginx) runs.
+# worker: the job worker runs and (BACKUP_JOB) a backup can be written.
 # Both:   nothing runs as root, the root filesystem is read-only, /data is writable.
 # Stops at the first failure.
 set -eu
@@ -19,11 +19,19 @@ case "$role" in
   app)
     probe /api/health 200
     probe / 200
-    probe /some/client/route 200
     probe /django-static/admin/css/base.css 200
     probe /api/auth/me <UNAUTHENTICATED_STATUS>
-    # The admin has no login page of its own: anonymous requests go to the app's login.
-    probe /django-admin/login/ 302
+    # The project's own probes: a client-side route of the SPA, its own API routes, security
+    # properties worth guarding (kept outside the template comparison, DOCKER-12).
+    # --- project: probes ---
+    probe /some/client/route 200
+    # --- end ---
+    # The Django admin is off unless ADMIN_ENABLED; when it is on it has no login page of its
+    # own: anonymous requests go to the app's login.
+    case "$(printf %s "${ADMIN_ENABLED:-}" | tr '[:upper:]' '[:lower:]')" in
+      1|true|yes|on) probe /django-admin/login/ 302 ;;
+      *) probe /django-admin/login/ 404 ;;
+    esac
     if [ -d /srv/docs ]; then probe /docs/ 200; fi
     status=$(supervisorctl -c /etc/supervisord.conf status || true)
     echo "$status"
@@ -33,8 +41,10 @@ case "$role" in
   worker)
     # [p]: the pattern does not match grep's own command line.
     grep -qa '[p]rocrastinate' /proc/[0-9]*/cmdline || fail "the job worker is not running"
+    # [BACKUP_JOB]
     # pg_dump in the image must accept the server's version and write into /backups.
     python manage.py backup_database || fail "backup"
+    # [/BACKUP_JOB]
     ;;
   *) fail "unknown role" ;;
 esac

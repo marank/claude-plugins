@@ -134,6 +134,11 @@ check-docs:
 check-eol:
     uv run --no-project python scripts/check_eol.py
 
+# A pull request title must be a Conventional Commit (CI runs it on pull requests, with the
+# title as the exported parameter: `just check-pr-title "$TITLE"`); [RELEASE_PLEASE] only with release-please
+check-pr-title $TITLE:
+    uv run --no-project --python ">=3.11" scripts/check_pr_title.py
+
 # GitHub workflows: syntax (actionlint) and security (zizmor)
 check-workflows:
     uvx --from actionlint-py==<ACTIONLINT> actionlint

@@ -65,10 +65,11 @@ updates:
     commit-message:
       prefix: "deps"
     ignore:
-      # Node: only even majors (LTS lines). Python minors need a look at requires-python
-      # and wheel support; they still come, as single PRs.
+      # Node: only LTS lines. 25 never became one; from 27 on every major does, six months
+      # after its release (27: October 2027), so take 27.x off this list then. Python minors
+      # need a look at requires-python and wheel support; they still come, as single PRs.
       - dependency-name: node
-        versions: ["25.x", "27.x", "29.x"]
+        versions: ["25.x", "27.x"]
 
   - package-ecosystem: docker-compose
     directory: /

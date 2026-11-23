@@ -25,8 +25,8 @@ All commands live in the `justfile` (`just` lists them); CI and the VS Code task
 - `just messages` after new backend texts; translate `backend/locale/de/…/django.po`.
 - Frontend: **pnpm** only. Backend: `uv add` / `uv add --dev`.
 <!-- [RELEASE_PLEASE] -->
-- Commits on `main` are Conventional Commits (squash-merged PR titles); release-please builds
-  CHANGELOG.md and the releases from them (CONTRIBUTING.md). Dependabot titles updates that reach
+- Commits on `main` are Conventional Commits (squash-merged PR titles, checked in CI with
+  `just check-pr-title`); release-please builds CHANGELOG.md and the releases from them (CONTRIBUTING.md). Dependabot titles updates that reach
   the image or the operators `deps:` (patch release, section "Dependencies") and development tools
   `chore(deps):` (not in the changelog); `fix:` is for real bug fixes only.
 <!-- [/] -->
@@ -120,7 +120,7 @@ All commands live in the `justfile` (`just` lists them); CI and the VS Code task
 - Limits on tangle, not on length (ESLint): complexity ≤ 15, nesting ≤ 4, no line limit for files or
   components — split a component when it has two jobs, not when it is long. Import boundaries: only
   `src/api/` uses the client; shared code (components, composables/hooks, utils) never imports a
-  page or view; `src/utils/` stays pure (no components, no API). `noUncheckedIndexedAccess` is on.
+  page, view or feature; `src/utils/` stays pure (no components, no API). `noUncheckedIndexedAccess` is on.
 
 ## Tests
 
@@ -167,12 +167,17 @@ All commands live in the `justfile` (`just` lists them); CI and the VS Code task
 
 ## Docker / runtime
 
-- One image, two containers: `app` (supervisord runs nginx and gunicorn; if one keeps failing, the
+- One image, two containers: `app` (`docker/entrypoint.sh` checks and migrates once, then supervisord
+  runs nginx and gunicorn; if one keeps failing, the
   container stops) and `worker` (the job queue, `docker/worker`). Both run read-only, without
   capabilities, as the unprivileged user `app`. Only `/data` (`DATA_DIR`), `/backups` (worker) and
   `/tmp` are writable; new features write there instead of loosening `compose.yml`.
-- The worker dumps the database nightly into `/backups` (`BACKUP_TIME`, `BACKUP_KEEP_DAYS`);
-  `docker compose exec worker python manage.py backup_database` dumps right away.
+- The Docker files equal the template for the variants this project uses (gunicorn or uvicorn,
+  worker as a service or a supervisord program, backup as a job or a container). The project's own
+  additions go between `# --- project: <name> ---` and `# --- end ---` and nowhere else.
+- The worker backs up nightly into `/backups` (`BACKUP_TIME`, `BACKUP_KEEP_DAYS`): the database dump and,
+  when there are uploads, an archive of `MEDIA_ROOT`;
+  `docker compose exec worker python manage.py backup_database` does it right away.
 - The image is smoke-tested on every platform it is built for (`docker/smoke-test`); new runtime
   behaviour gets a probe there.
 - nginx believes `X-Forwarded-*` only from `TRUSTED_PROXIES`.
@@ -180,8 +185,8 @@ All commands live in the `justfile` (`just` lists them); CI and the VS Code task
   clients or other services treat the host or domain: no HSTS, no http → https redirect (TLS, redirects
   and HSTS belong to the reverse proxy in front), no cookies for a parent domain, no service worker or
   other persistent client install unless the project decides so explicitly. A test checks that responses carry no
-  `Strict-Transport-Security` and that http requests are not redirected. The Django admin lives under `/django-admin` (so `/admin` stays free for the SPA) and signs in
-  through the app's login only.
+  `Strict-Transport-Security` and that http requests are not redirected. The Django admin is off unless `ADMIN_ENABLED=true`, lives under `/django-admin` (so `/admin` stays
+  free for the SPA) and signs in through the app's login only.
 - `compose.yml` must work with `.env` alone, without any other file from the repository.
 
 ## House defaults

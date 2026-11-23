@@ -24,6 +24,10 @@ RUN npm install -g "$(node -p "require('./package.json').packageManager.split('+
 COPY docs/ ./
 RUN pnpm build
 
+# Further build stages of the project (kept outside the template comparison, DOCKER-12).
+# --- project: build stages ---
+# --- end ---
+
 # --- 3. Runtime: supervisord → nginx + gunicorn/Django; the same image runs the worker -
 # Named "runtime": CI builds it without cache (--no-cache-filter runtime), so system
 # package updates are never held back.
@@ -41,6 +45,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     HOME=/tmp \
     DATA_DIR=/data \
     BACKUP_DIR=/backups
+# --- project: environment ---
+# --- end ---
 
 # nginx; gettext-base for envsubst (start-nginx), gettext for compilemessages ([BACKEND_DE]);
 # postgresql-client from PostgreSQL's own repository in the server's major, so pg_dump
@@ -65,23 +71,38 @@ RUN apt-get update \
  && install -d -o app -g app -m 0700 /data /backups \
  && find / -xdev -perm /6000 -type f -exec chmod a-s {} +
 
+# Further system packages of the project (kept outside the template comparison, DOCKER-12).
+# --- project: system packages ---
+# --- end ---
+
 WORKDIR /app
 COPY backend/pyproject.toml backend/uv.lock ./
 RUN --mount=from=ghcr.io/astral-sh/uv:<UV>@<DIGEST>,source=/uv,target=/usr/local/bin/uv \
     --mount=type=cache,target=/tmp/.cache/uv \
     uv sync --frozen --no-dev --no-install-project
 COPY backend/ ./
-# collectstatic needs settings to import; a throwaway key is enough at build time.
-RUN SECRET_KEY="build-only-$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')" DB_PASSWORD=unused \
+# The app's own modules too: the root filesystem is read-only at runtime, so Python could not
+# cache them there. collectstatic needs settings to import; a throwaway key is enough at build time.
+RUN python -m compileall -q config apps \
+ && SECRET_KEY="build-only-$(head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n')" DB_PASSWORD=unused \
     sh -c 'python manage.py collectstatic --noinput && python manage.py compilemessages --ignore=.venv'
 
 COPY --from=frontend /frontend/dist /srv/spa
 # [DOCS]
 COPY --from=docs /docs/.vitepress/dist /srv/docs
+# [/]
+# Further files the project copies into the runtime stage (outside the comparison, DOCKER-12).
+# --- project: copy into runtime ---
+# --- end ---
 COPY docker/nginx.conf docker/django_proxy.conf docker/security_headers.conf /etc/nginx/
 COPY docker/app.conf.template /etc/nginx/app.conf.template
+# [WSGI]
+COPY docker/supervisord.conf docker/gunicorn.conf.py /etc/
+# [/WSGI]
+# [ASGI]
 COPY docker/supervisord.conf /etc/supervisord.conf
-COPY docker/start-nginx docker/exit-on-fatal docker/healthcheck docker/smoke-test docker/worker /usr/local/bin/
+# [/ASGI]
+COPY docker/entrypoint.sh docker/start-nginx docker/exit-on-fatal docker/healthcheck docker/smoke-test docker/worker /usr/local/bin/
 
 # Everything above is owned by root and read-only for "app"; only /data, /backups and /tmp are written.
 USER app
@@ -89,4 +110,6 @@ EXPOSE 8080
 VOLUME ["/data", "/backups"]
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s \
   CMD ["python", "/usr/local/bin/healthcheck"]
-CMD ["supervisord", "-c", "/etc/supervisord.conf"]
+# entrypoint.sh: deploy checks, migrate, first admin, then supervisord. CMD, not ENTRYPOINT: the
+# worker service replaces it with its own command.
+CMD ["sh", "/usr/local/bin/entrypoint.sh"]

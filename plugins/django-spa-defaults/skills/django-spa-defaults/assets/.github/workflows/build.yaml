@@ -314,8 +314,8 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
 
-      # Start the image twice against a throwaway PostgreSQL, hardened like compose.yml: as
-      # the app and as the worker. Once the app is healthy and both have run long enough for
+      # Start the image against a throwaway PostgreSQL, hardened like compose.yml: as the app
+      # and (WORKER_SERVICE) as the worker. Once the app is healthy and both have run long enough for
       # a crashing program to give up, docker/smoke-test probes each from inside (the same
       # script the skill's verify script runs). TRUSTED_PROXIES=127.0.0.1 lets the probes act
       # like a TLS proxy in front, so the https APP_URLS behave as in production.
@@ -336,12 +336,14 @@ jobs:
             -e APP_URLS=https://app.example.com -e TRUSTED_PROXIES=127.0.0.1
             -e DB_HOST=db -e DB_NAME=ci -e DB_USER=ci -e DB_PASSWORD=ci)
           docker run -d --name "$NAME" "${common[@]}" \
-            -e ADMIN_USERNAME=admin -e ADMIN_EMAIL=admin@example.com \
+            -e ADMIN_ENABLED=true -e ADMIN_USERNAME=admin -e ADMIN_EMAIL=admin@example.com \
             -e ADMIN_PASSWORD=ci-smoke-admin-password-42 \
             "$IMAGE"
+          # [WORKER_SERVICE]
           docker run -d --name "$NAME-worker" "${common[@]}" --init --no-healthcheck \
             -v "$NAME-backups:/backups" \
             "$IMAGE" sh /usr/local/bin/worker
+          # [/WORKER_SERVICE]
 
           healthy=false
           for i in $(seq 1 45); do
@@ -357,7 +359,9 @@ jobs:
 
           sleep 20
           docker exec "$NAME" sh /usr/local/bin/smoke-test app
+          # [WORKER_SERVICE]
           docker exec "$NAME-worker" sh /usr/local/bin/smoke-test worker
+          # [/WORKER_SERVICE]
           # Not grep -q: it stops reading early, and docker logs would fail on SIGPIPE.
           docker logs "$NAME" 2>&1 | grep -F "Created admin user 'admin'" >/dev/null
 

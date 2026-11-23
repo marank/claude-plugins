@@ -1,0 +1,42 @@
+# Pull request title: a Conventional Commit.
+#
+# With squash merging the PR title becomes the commit message on main, and release-please
+# builds the changelog and the next version from those messages. Its own workflow, so that
+# editing a title runs only this job and not the whole build; make `pr-title` a required
+# status check (ci.md section 6). The title reaches the script through the environment only.
+#
+# Template notes for the skill (remove when filling in): only with `- Releases: release-please`
+# (otherwise delete this file, the `check-pr-title` recipe in the justfile and
+# scripts/check_pr_title.py); `uses:` pinned to a full commit SHA with the release tag as comment.
+name: pr-title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  pr-title:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@<SHA> # <VERSION>
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@<SHA> # <VERSION>
+
+      - name: Install just
+        run: uv tool install rust-just==<JUST>
+
+      - name: Check the title
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: just check-pr-title "$TITLE"

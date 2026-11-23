@@ -1,13 +1,16 @@
-"""Database dumps into ``settings.BACKUP_DIR``, nightly by the ``backup_database`` job.
+"""Backups into ``settings.BACKUP_DIR``, nightly by the ``backup_database`` job.
 
 ``pg_dump`` writes PostgreSQL's custom format (restore with ``pg_restore``) to
-``<database>-<UTC timestamp>.dump``; dumps older than ``BACKUP_KEEP_DAYS`` days are
-deleted after each successful dump.
+``<database>-<UTC timestamp>.dump``. Uploaded files (``MEDIA_ROOT``, below ``DATA_DIR``) are
+archived to ``media-<UTC timestamp>.tar.gz`` when there are any; a database dump alone would
+restore records that point to files that are gone. Backups older than ``BACKUP_KEEP_DAYS``
+days are deleted after each successful dump.
 """
 
 import logging
 import os
 import subprocess
+import tarfile
 import time
 from pathlib import Path
 
@@ -58,20 +61,60 @@ def backup_database() -> Path:
         )
     except subprocess.CalledProcessError as error:
         partial.unlink(missing_ok=True)
-        raise BackupError(error.stderr.strip() or f"pg_dump exited with {error.returncode}") from error
+        raise BackupError(
+            error.stderr.strip() or f"pg_dump exited with {error.returncode}"
+        ) from error
     partial.rename(target)
     logger.info("Database dumped to %s", target)
     remove_old_backups(directory)
     return target
 
 
+def backup_media() -> Path | None:
+    """Archive ``MEDIA_ROOT`` into ``BACKUP_DIR`` now; ``None`` when nothing was uploaded."""
+    media = Path(settings.MEDIA_ROOT)
+    if not media.is_dir() or not any(media.iterdir()):
+        return None
+    directory = Path(settings.BACKUP_DIR)
+    directory.mkdir(parents=True, exist_ok=True)
+    target = directory / f"media-{timezone.now():%Y%m%dT%H%M%SZ}.tar.gz"
+    partial = target.with_name(f"{target.name}.partial")
+    try:
+        # 0600: uploads can be as private as the database.
+        descriptor = os.open(partial, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with (
+            os.fdopen(descriptor, "wb") as handle,
+            tarfile.open(fileobj=handle, mode="w:gz") as archive,
+        ):
+            archive.add(media, arcname="media")
+    except (OSError, tarfile.TarError) as error:
+        partial.unlink(missing_ok=True)
+        raise BackupError(f"archiving {media} failed: {error}") from error
+    partial.rename(target)
+    logger.info("Media archived to %s", target)
+    return target
+
+
+def backup_all() -> tuple[Path, Path | None]:
+    """The database dump and, when there are uploads, the media archive."""
+    dump = backup_database()
+    return dump, backup_media()
+
+
 def remove_old_backups(directory: Path) -> list[Path]:
-    """Delete dumps older than ``BACKUP_KEEP_DAYS`` days and leftovers of failed dumps."""
+    """Delete backups older than ``BACKUP_KEEP_DAYS`` days and leftovers of failed ones."""
     now = time.time()
     keep_after = now - settings.BACKUP_KEEP_DAYS * 86400
-    removed = [path for path in directory.glob("*.dump") if path.stat().st_mtime < keep_after]
+    removed = [
+        path
+        for pattern in ("*.dump", "media-*.tar.gz")
+        for path in directory.glob(pattern)
+        if path.stat().st_mtime < keep_after
+    ]
     removed += [
-        path for path in directory.glob("*.partial") if path.stat().st_mtime < now - STALE_PARTIAL_SECONDS
+        path
+        for path in directory.glob("*.partial")
+        if path.stat().st_mtime < now - STALE_PARTIAL_SECONDS
     ]
     for path in removed:
         path.unlink()

@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 from django.core.exceptions import ImproperlyConfigured
 
 _TRUE = {"1", "true", "yes", "on"}
-_FALSE = {"0", "false", "no", "off", ""}
+_FALSE = {"0", "false", "no", "off"}
 
 
 def load_dotenv(*candidates: Path) -> None:
@@ -47,7 +47,9 @@ def env_str(name: str, default: str | None = None) -> str:
 
 def env_bool(name: str, default: bool = False) -> bool:
     value = os.environ.get(name)
-    if value is None:
+    if value is None or not value.strip():
+        # An empty `NAME=` (as in .env.example) means "not set", like in env_str and env_int;
+        # reading it as False would switch off every setting whose default is True.
         return default
     lowered = value.strip().lower()
     if lowered in _TRUE:
@@ -86,9 +88,15 @@ def parse_app_urls(urls: list[str]) -> list[AppUrl]:
     for url in urls:
         parts = urlsplit(url)
         if parts.scheme not in {"http", "https"} or not parts.hostname:
-            raise ImproperlyConfigured(f"APP_URLS entry {url!r} must look like https://host[:port].")
+            raise ImproperlyConfigured(
+                f"APP_URLS entry {url!r} must look like https://host[:port]."
+            )
         default_port = 443 if parts.scheme == "https" else 80
-        netloc = parts.hostname if parts.port in (None, default_port) else f"{parts.hostname}:{parts.port}"
+        netloc = (
+            parts.hostname
+            if parts.port in (None, default_port)
+            else f"{parts.hostname}:{parts.port}"
+        )
         parsed.append(AppUrl(parts.scheme, parts.hostname, f"{parts.scheme}://{netloc}"))
     if not parsed:
         raise ImproperlyConfigured("APP_URLS must contain at least one URL.")

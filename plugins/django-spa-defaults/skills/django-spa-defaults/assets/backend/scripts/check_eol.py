@@ -49,10 +49,15 @@ def platforms() -> list[Platform]:
     dockerfile = ROOT / "Dockerfile"
     return [
         Platform("Python", "python", _match(dockerfile, r"^FROM python:(\d+\.\d+)-"), "Dockerfile"),
-        Platform("Debian", "debian", _match(dockerfile, r"^FROM python:[\d.]+-slim-(\w+)"), "Dockerfile"),
+        Platform(
+            "Debian", "debian", _match(dockerfile, r"^FROM python:[\d.]+-slim-(\w+)"), "Dockerfile"
+        ),
         Platform("Node.js", "nodejs", _match(dockerfile, r"^FROM node:(\d+)-"), "Dockerfile"),
         Platform(
-            "PostgreSQL", "postgresql", _match(ROOT / "compose.yml", r"image: postgres:(\d+)"), "compose.yml"
+            "PostgreSQL",
+            "postgresql",
+            _match(ROOT / "compose.yml", r"image: postgres:(\d+)"),
+            "compose.yml",
         ),
         Platform("Django", "django", _django_cycle(), "backend/uv.lock"),
     ]

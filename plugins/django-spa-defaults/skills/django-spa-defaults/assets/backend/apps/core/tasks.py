@@ -24,7 +24,7 @@ def backup_database(timestamp: int) -> None:
     hour and dumps only in the hour that is ``BACKUP_TIME``'s hour in ``TIME_ZONE``."""
     scheduled = timezone.localtime(datetime.fromtimestamp(timestamp, UTC))
     if settings.BACKUP_DIR and scheduled.hour == settings.BACKUP_TIME.hour:
-        backups.backup_database()
+        backups.backup_all()
 
 
 @app.periodic(cron="30 3 * * *")

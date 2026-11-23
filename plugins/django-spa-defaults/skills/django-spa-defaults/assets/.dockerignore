@@ -1,5 +1,8 @@
 .git
-.env
+# Secrets of any folder (backend/.env, frontend/.env.local, …), but not the documented example.
+**/.env
+**/.env.*
+!**/.env.example
 **/__pycache__
 **/*.pyc
 backend/.venv
