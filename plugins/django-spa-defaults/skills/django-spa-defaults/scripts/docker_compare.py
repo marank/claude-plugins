@@ -115,7 +115,7 @@ def variants(read, exists) -> set[str]:
     elif uses("procrastinate worker"):
         chosen.add("WORKER_PROGRAM")
     chosen.add("BACKUP_CONTAINER" if re.search(r"^  backup:", compose, re.M) else "BACKUP_JOB")
-    chosen.add("DOCS" if (exists("docs") or " AS docs" in dockerfile) else "NO_DOCS")
+    chosen.add("DOCS" if (exists("docs/package.json") or exists("docs/.vitepress") or " AS docs" in dockerfile) else "NO_DOCS")
     chosen.add("BACKEND_DE" if exists("backend/locale/de") else "BACKEND_EN")
     return chosen
 

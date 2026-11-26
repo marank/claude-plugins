@@ -67,7 +67,7 @@ def paragraphs(lines: list[str]) -> list[str]:
 
 def variants(read, exists, has_docker: bool) -> set[str]:
     chosen = {"BACKEND_DE" if exists("backend/locale/de") else "BACKEND_EN",
-              "DOCS" if exists("docs") else "NO_DOCS"}
+              "DOCS" if exists("docs/package.json") or exists("docs/.vitepress") else "NO_DOCS"}
     package = read("frontend/package.json")
     chosen.add("VUE" if re.search(r'"vue"\s*:', package) else "REACT")
     for tag, present in (("RELEASE_PLEASE", exists("release-please-config.json")), ("ADRS", exists("adr")),
@@ -81,9 +81,13 @@ def short(text: str, width: int = 90) -> str:
     return text if len(text) <= width else text[: width - 1] + "…"
 
 
-def compare(template: str, text: str, selected: set[str]) -> list[str]:
-    wanted = paragraphs(fixed_zone(render(template, selected)))
-    have = paragraphs(fixed_zone(text.splitlines()))
+def compare(template: str, text: str, selected: set[str], exempt: list[str] | None = None) -> list[str]:
+    """Problems of the fixed part. `exempt`: texts a project replaced on purpose (accepted in
+    House defaults as `- REPO-26 [text, text]: reason`); paragraphs containing one are left out
+    on both sides."""
+    keep = lambda ps: [p for p in ps if not any(e in p for e in exempt or ())]  # noqa: E731
+    wanted = keep(paragraphs(fixed_zone(render(template, selected))))
+    have = keep(paragraphs(fixed_zone(text.splitlines())))
     patterns = [re.compile("".join(".+?" if PLACEHOLDER.fullmatch(part) else re.escape(part)
                                    for part in re.split(f"({PLACEHOLDER.pattern})", w)) + r"\Z") for w in wanted]
     extra: list[str] = []

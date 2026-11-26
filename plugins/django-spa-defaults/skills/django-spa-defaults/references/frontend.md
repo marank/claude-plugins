@@ -132,7 +132,7 @@ How views load data through these functions is the variant's business (composabl
 - Before the app mounts: `await ensureCsrf()`, then load `/api/auth/me` (401 → logged out).
 - Routes are protected by default; only routes marked public (login) are reachable without a user.
 - Login POSTs `/api/auth/login`. Django rotates the CSRF token on login — re-read the cookie per request (the middleware does), never cache it.
-- The login page honours `?next=`: only a same-origin path (starts with `/`, not `//`) is followed; a path the SPA doesn't own (`/django-admin/…`, which sends its sign-ins here) is opened with a full page load (`window.location.assign`), everything else through the router.
+- The login page honours `?next=`: only a same-origin path (starts with `/`, not `//`) is followed; a path the SPA doesn't own (e.g. `/django-admin/…`) is opened with a full page load (`window.location.assign`), everything else through the router.
 - Start with the areas `auth` (login page) and `home` (shows the logged-in user), so the path SPA → nginx/Vite → Django → session works from day one.
 
 ## 5. Translations (English + German)

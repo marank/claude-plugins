@@ -41,7 +41,7 @@ backend/
 │   ├── settings_test.py    tests: dev settings + fast password hasher (settings.md 4b)
 │   ├── env.py              env helpers (bool/list/int, APP_URLS parsing, SECRET_KEY guard)
 │   ├── api.py              API root: mounts routers, exposes urlpatterns for /api/
-│   ├── urls.py             /api/ + /django-admin/ with ADMIN_ENABLED (signs in through the app's login)
+│   ├── urls.py             /api/ + /django-admin/ with ADMIN_ENABLED
 │   ├── asgi.py, wsgi.py
 ├── locale/de/LC_MESSAGES/  django.po (committed; .mo built in Docker and CI)
 ├── scripts/                check_licenses.py, check_openapi.py, check_translations.py (run by `just check-backend`)
@@ -77,7 +77,7 @@ Relations between files use string references (`models.ForeignKey("projects.Proj
 
 ## 3. Settings and env
 
-Follow `settings.md`: it lists exactly which parts of the generated `settings.py` / `urls.py` to replace and why. In short: `.env` loading, `APP_URLS`-derived hosts/CSRF/secure cookies, the SECRET_KEY guard, PostgreSQL with `DB_HOST` / SQLite natively, the job queue (PostgreSQL only) and backup settings, `TIME_ZONE`, `LOG_LEVEL`, `DATA_DIR`, the admin under `/django-admin` signing in through the app's login, `STATIC_URL = "/django-static/"`. When you add a setting later, read it through `config/env.py` and document it in `.env.example`.
+Follow `settings.md`: it lists exactly which parts of the generated `settings.py` / `urls.py` to replace and why. In short: `.env` loading, `APP_URLS`-derived hosts/CSRF/secure cookies, the SECRET_KEY guard, PostgreSQL with `DB_HOST` / SQLite natively, the job queue (PostgreSQL only) and backup settings, `TIME_ZONE`, `LOG_LEVEL`, `DATA_DIR`, the admin under `/django-admin`, `STATIC_URL = "/django-static/"`. When you add a setting later, read it through `config/env.py` and document it in `.env.example`.
 
 ## 4. Models: packages and UUIDs
 

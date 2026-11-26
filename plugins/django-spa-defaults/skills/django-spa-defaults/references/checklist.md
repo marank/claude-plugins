@@ -1,6 +1,6 @@
 # House defaults checklist
 
-Version: 1.9.1 — the plugin's version (`django-spa-defaults`). A repo records the version it was last checked against in AGENTS.md.
+Version: 1.9.2 — the plugin's version (`django-spa-defaults`). A repo records the version it was last checked against in AGENTS.md.
 
 The norm for **existing repositories**: a repo meets the house defaults when every item below either passes or is listed as an accepted deviation in the repo's `AGENTS.md`. Only these items produce findings. The other references describe *how* to build things for a new project; when reviewing they are a lookup for fixing an item, never a source of extra findings.
 
@@ -49,7 +49,7 @@ The versions a repo should be on, for the items that name this table (BE-25, BE-
 | REPO-23 | should | all | auto | An AI coding agent gets lint and format feedback on each file it edits, right after the edit. | **Claude Code hook (`.claude/settings.json` + `scripts/lint_file.py`)** · the equivalent of another agent |
 | REPO-24 | should | all | auto | With release-please, pull request titles are checked as Conventional Commits in CI: the squash-merge title is the commit message release-please reads, and one malformed title leaves a gap in the changelog. (That `main` takes pull requests only is a GitHub setting, ci.md section 6.) | **`scripts/check_pr_title.py` with the `pr-title` job from the template** · commitlint, a semantic-pull-request action |
 | REPO-25 | should | all | auto | One line length: ruff's `line-length` and Prettier's `printWidth` are both 100. | — |
-| REPO-26 | should | all | auto | The fixed part of `AGENTS.md` equals the template: every section from the first `##` up to `## Project` / `## Glossary` / `## House defaults`, for the variants the repo uses (backend languages, Vue or React, docs, ADRs, release-please, Docker); placeholders like the project name are free. What only this project has goes under `## Project`. n/a without backend and frontend. | **Fixed schema** (the same rules in every repo, so they are changed once, in the skill, and the project's own rules stay visible in one place) |
+| REPO-26 | should | all | auto | The fixed part of `AGENTS.md` equals the template: every section from the first `##` up to `## Project` / `## Glossary` / `## House defaults`, for the variants the repo uses (backend languages, Vue or React, docs, ADRs, release-please, Docker); placeholders like the project name are free. What only this project has goes under `## Project`; a rule that does not apply is replaced there and listed as `- REPO-26 [start of the rule, …]: reason` in House defaults, which leaves those paragraphs out of the comparison. n/a without backend and frontend. | **Fixed schema** (the same rules in every repo, so they are changed once, in the skill, and the project's own rules stay visible in one place) |
 
 ## Backend
 

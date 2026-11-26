@@ -215,13 +215,13 @@ All commands live in the `justfile` (`just` lists them); CI and the VS Code task
   and HSTS belong to the reverse proxy in front), no cookies for a parent domain, no service worker or
   other persistent client install unless the project decides so explicitly. A test checks that responses carry no
   `Strict-Transport-Security` and that http requests are not redirected. The Django admin is off unless `ADMIN_ENABLED=true`, lives under `/django-admin` (so `/admin` stays
-  free for the SPA) and signs in through the app's login only.
+  free for the SPA).
 - `compose.yml` must work with `.env` alone, without any other file from the repository.
 <!-- [/] -->
 
 ## Project
 
-<!-- Only this project: architecture, extra rules, domain facts. The sections above stay as they are. -->
+<!-- Only this project: architecture, extra rules, domain facts. The sections above stay as they are; a rule there that does not apply here is replaced in a `### Deviations` section below, and listed under House defaults. -->
 
 ## Glossary
 
@@ -239,6 +239,7 @@ Project decisions (asked once; the review checks against them and asks again onl
 - ADRs: <ADRS>
 
 <!-- Examples:
+- REPO-26 [Apps live in, Before every commit]: apps live in `core/` and there is no `check-changed`; the replacing rules are under `## Project`.
 - SEC-06: framing allowed for same-origin pages, the print preview embeds them.
 - BE-14 [backend/apps/core/api/crud.py]: the generic CRUD layer writes by design.
 - FE-05: floor 88/86/79/82 (today), raised with every feature; delete this line at 90/90/85/85. -->

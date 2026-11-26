@@ -5,6 +5,10 @@
 ARG PG_MAJOR=<PG_MAJOR>
 ARG SUPERVISOR_VERSION=<SUPERVISOR>
 
+# uv installs the backend's packages and is not part of the image. Its own stage, so Dependabot
+# sees the pin (it does not read `RUN --mount=from=<image>`).
+FROM ghcr.io/astral-sh/uv:<UV>@<DIGEST> AS uv
+
 # --- 1. Build the SPA ------------------------------------------------------------
 FROM node:<NODE_LTS>-alpine@<DIGEST> AS frontend
 WORKDIR /frontend
@@ -77,7 +81,7 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY backend/pyproject.toml backend/uv.lock ./
-RUN --mount=from=ghcr.io/astral-sh/uv:<UV>@<DIGEST>,source=/uv,target=/usr/local/bin/uv \
+RUN --mount=from=uv,source=/uv,target=/usr/local/bin/uv \
     --mount=type=cache,target=/tmp/.cache/uv \
     uv sync --frozen --no-dev --no-install-project
 COPY backend/ ./

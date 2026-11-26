@@ -256,28 +256,17 @@ Then replace the generated `urlpatterns` (keep the generated docstring if you li
 ```python
 from django.conf import settings
 from django.contrib import admin
-from django.http import HttpRequest, HttpResponse
-from django.shortcuts import redirect
 from django.urls import path
-from django.utils.http import urlencode
 
 from .api import urlpatterns as api_urlpatterns  # everything under /api/
 
-
-def admin_login(request: HttpRequest, extra_context: object = None) -> HttpResponse:
-    """One sign-in for everything: the admin uses the app's login (and whatever it adds, such as a
-    second factor) instead of a login page of its own; staff users then land back in the admin."""
-    return redirect(f"/login?{urlencode({'next': request.GET.get('next', '/django-admin/')})}")
-
-
 urlpatterns = [*api_urlpatterns]
 if settings.ADMIN_ENABLED:
-    admin.site.login = admin_login  # type: ignore[method-assign]  # the documented way to swap the view
     # The Django admin lives under /django-admin, so /admin stays free for the SPA's own administration.
     urlpatterns.insert(0, path("django-admin/", admin.site.urls))
 ```
 
-Without `ADMIN_ENABLED` `/django-admin/…` answers 404 (nginx forwards it, Django has no such route); `django.contrib.admin` stays in `INSTALLED_APPS`, so the models' `admin/` modules and the static files keep working.
+Without `ADMIN_ENABLED` `/django-admin/…` answers 404 (nginx forwards it, Django has no such route); `django.contrib.admin` stays in `INSTALLED_APPS`, so the models' `admin/` modules and the static files keep working. The admin keeps Django's own login page; a project that adds a second factor or single sign-on makes the admin use it through that package's own admin integration (django-allauth, django-otp, …).
 
 
 After patching, `uv run python manage.py check` must pass, with `ADMIN_ENABLED=true` the admin login redirect must work and the admin pages must render without CSP violations (check in a browser once if possible; otherwise switch `SECURE_CSP` to `SECURE_CSP_REPORT_ONLY` and say so) and `grep -n "django-insecure" config/settings.py` must find nothing.

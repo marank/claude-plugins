@@ -1239,7 +1239,8 @@ def repo_26(r: Repo) -> Result:
     import agents_compare
     template = (SKILL_DIR / "assets" / "AGENTS.md").read_text(encoding="utf-8")
     chosen = agents_compare.variants(r.read, r.exists, r.has_docker())
-    return verdict(agents_compare.compare(template, r.read("AGENTS.md"), chosen))
+    decision_ = house_defaults(r)[1].get("REPO-26")
+    return verdict(agents_compare.compare(template, r.read("AGENTS.md"), chosen, decision_.paths if decision_ else None))
 
 
 def repo_24(r: Repo) -> Result:
