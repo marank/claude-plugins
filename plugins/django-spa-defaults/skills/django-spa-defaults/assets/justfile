@@ -28,9 +28,11 @@ setup-docs:
 
 # --- Development ----------------------------------------------------------------------
 
+# The recipes that start Django set DEBUG=true (the default in the app is false, also in .env).
+
 # Django on :8000 (SQLite in backend/data, no job worker)
 [working-directory: 'backend']
-dev-backend:
+dev-backend $DEBUG="true":
     uv run python manage.py runserver
 
 # Vite on :<DEV_PORT>, proxying /api, /django-admin and /django-static to Django
@@ -49,13 +51,13 @@ db-up:
 
 # Apply migrations and create the first admin
 [working-directory: 'backend']
-migrate:
+migrate $DEBUG="true":
     uv run python manage.py migrate
     uv run python manage.py ensure_admin
 
 # After model changes; commit the migrations
 [working-directory: 'backend']
-migrations:
+migrations $DEBUG="true":
     uv run python manage.py makemigrations
 
 # After API changes: schema -> frontend/openapi.json -> src/api/schema.d.ts; commit both
@@ -64,17 +66,17 @@ api-types: api-schema
     pnpm api:types
 
 [working-directory: 'backend']
-api-schema:
+api-schema $DEBUG="true":
     <OPENAPI_EXPORT_COMMAND>
 
 # [BACKEND_DE] After new backend texts; then translate backend/locale/de/LC_MESSAGES/django.po
 [working-directory: 'backend']
-messages:
+messages $DEBUG="true":
     uv run python manage.py makemessages -l de --ignore=.venv
 
 # [BACKEND_DE]
 [working-directory: 'backend']
-compile-messages:
+compile-messages $DEBUG="true":
     uv run python manage.py compilemessages --ignore=.venv
 
 # --- Checks (= CI) --------------------------------------------------------------------

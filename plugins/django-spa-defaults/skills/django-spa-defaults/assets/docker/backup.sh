@@ -1,14 +1,12 @@
 #!/bin/sh
-# Nightly backup, run by the "backup" service in compose.yml (variant BACKUP_CONTAINER; the
-# default is the worker job, apps/core/services/backups.py), into the "backups" volume:
+# Nightly backup into the "backups" volume (BACKUP_TIME, BACKUP_KEEP_DAYS from .env):
 #
-#   /var/lib/postgresql/backups/db/<db>-<time>.dump   pg_dump, custom format (pg_restore)
-#   /var/lib/postgresql/backups/media/<time>/          snapshot of the uploaded media
+#   /var/lib/postgresql/backups/db/<db>-<time>.dump   the database (pg_restore)
+#   /var/lib/postgresql/backups/media/<time>/          the uploaded files
 #
-# Media files are never changed once written (random names; only added or deleted),
-# so a snapshot hard-links every file the previous snapshot already has and copies
-# only new ones: each snapshot is a complete tree, but costs only the new files.
-# Snapshots and dumps older than BACKUP_KEEP_DAYS are deleted.
+# Uploaded files are only ever added or deleted, so each snapshot reuses (hard-links) the files
+# the last one has: every snapshot is complete, but costs only the new files.
+# Backups older than BACKUP_KEEP_DAYS days are deleted.
 set -eu
 
 root=/var/lib/postgresql/backups

@@ -2,6 +2,7 @@
 
 Runs on every container start; it never touches an existing user, so changing
 ADMIN_PASSWORD later has no effect (use `manage.py set_password <username>`).
+Defaults: admin / admin@example.com / administrator; ADMIN_USERNAME set empty skips it.
 """
 
 import os
@@ -17,7 +18,7 @@ class Command(BaseCommand):
     help = "Create the initial superuser from ADMIN_USERNAME / ADMIN_EMAIL / ADMIN_PASSWORD."
 
     def handle(self, *args, **options):
-        username = os.environ.get("ADMIN_USERNAME", "").strip()
+        username = os.environ.get("ADMIN_USERNAME", "admin").strip()
         if not username:
             self.stdout.write("ADMIN_USERNAME not set, skipping admin creation.")
             return
@@ -28,13 +29,13 @@ class Command(BaseCommand):
             self.stdout.write(f"Admin user {username!r} already exists.")
             return
 
-        password = os.environ.get("ADMIN_PASSWORD", "")
+        password = os.environ.get("ADMIN_PASSWORD", "administrator")
         if password in INSECURE_SECRET_VALUES and not settings.DEBUG:
             raise CommandError("Set ADMIN_PASSWORD to a real password before the first start.")
 
         User.objects.create_superuser(
             **{User.USERNAME_FIELD: username},
-            email=os.environ.get("ADMIN_EMAIL", ""),
+            email=os.environ.get("ADMIN_EMAIL", "admin@example.com"),
             password=password,
         )
         self.stdout.write(self.style.SUCCESS(f"Created admin user {username!r}."))

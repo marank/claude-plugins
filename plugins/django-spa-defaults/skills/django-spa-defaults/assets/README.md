@@ -28,11 +28,11 @@ You need Docker with the Compose plugin. <Project> runs from the published image
    | Variable | Value |
    | --- | --- |
    | `SECRET_KEY` | A random string of at least 40 characters. <Project> does not start with the placeholder. |
-   | `ADMIN_PASSWORD` | Password of the first administrator (user `admin`). |
-   | `POSTGRES_PASSWORD` | Password of the database, used only between the containers. |
+   | `ADMIN_PASSWORD` | Password of the first administrator (user `admin`). The example value is `administrator`: change it before the first start, or later with `set_password`. |
+   | `DB_PASSWORD` | Password of the database, used only between the containers. |
    | `APP_URLS` | The address users open, e.g. `http://<project>.example.com:8080`. Keep `http://localhost:8080` to try it on your own machine. |
 
-   Generate the random values for `SECRET_KEY` and `POSTGRES_PASSWORD` with
+   Generate the random values for `SECRET_KEY` and `DB_PASSWORD` with
    `openssl rand -hex 32`.
 
 3. Start <Project> and its database:

@@ -25,7 +25,7 @@ Read this when the user wants a new project. `SKILL.md` has the conventions and 
 ```
 
 Two ways to run it, and both must work:
-- **Native development**: `just dev-backend` + `just dev-frontend` (VS Code: `Dev: start all`) → Django on :8000 with SQLite in `backend/data/`, Vite on the project's own `<DEV_PORT>` proxying `/api`, `/django-admin`, `/django-static`. No job worker: jobs run in-process after the commit, periodic jobs (backups) don't run. Optionally `just db-up` + `DB_HOST=localhost` to run on PostgreSQL like CI. `just check` runs exactly what CI runs.
+- **Native development**: `just dev-backend` + `just dev-frontend` (VS Code: `Dev: start all`) → Django on :8000 (the recipes that start Django set `DEBUG=true` themselves; the default and `.env.example` stay off) with SQLite in `backend/data/`, Vite on the project's own `<DEV_PORT>` proxying `/api`, `/django-admin`, `/django-static`. No job worker: jobs run in-process after the commit, periodic jobs (backups) don't run. Optionally `just db-up` + `DB_HOST=localhost` to run on PostgreSQL like CI. `just check` runs exactly what CI runs.
 - **Docker = production-like**: `docker compose up` runs Postgres, the app container (nginx + gunicorn) and the worker container from the same image; compose sets `DB_HOST=db` (so PostgreSQL and the job queue) and `DEBUG=false`. The Django admin lives under `/django-admin` (so `/admin` stays free for the SPA) and signs in through the app's login.
 
 ## Workflow

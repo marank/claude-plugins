@@ -155,7 +155,7 @@ def justfile_recipes(text: str) -> dict[str, tuple[list[str], str]]:
     recipes: dict[str, tuple[list[str], str]] = {}
     current = None
     for line in text.splitlines():
-        header = re.match(r"^@?([a-z][\w-]*)(?:\s+[^:=]*)?:(?!=)\s*(.*)$", line)
+        header = re.match(r"^@?([a-z][\w-]*)(?:\s+[^:]*?)?:(?!=)\s*(.*)$", line)
         if header and not line.startswith((" ", "\t")):
             current = header.group(1)
             deps = re.findall(r"[a-z][\w-]*", header.group(2).split("#")[0])
