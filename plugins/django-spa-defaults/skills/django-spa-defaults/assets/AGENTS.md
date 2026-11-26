@@ -2,7 +2,9 @@
 
 <One sentence: what the app does.> Django backend (`backend/`, API via <API_LIBRARY>), <FRONTEND> +
 TypeScript SPA (`frontend/`, <UI_LIBRARY>), one hardened Docker image. Read this before changing
-structure; `README.md` has setup and commands, `BACKLOG.md` what's planned.
+structure; `README.md` has setup and commands, `BACKLOG.md` what's planned. Everything up to
+`## Project` is the shared standard and is not edited per project; what only this project needs
+goes under `## Project`.
 
 ## Commands
 
@@ -136,35 +138,62 @@ All commands live in the `justfile` (`just` lists them); CI and the VS Code task
   a threshold (coverage, complexity, duplication, bundle size) without the maintainer's OK.
 - No new dependency without asking; first look for what the project already has.
 - Reuse before writing: search `apps/core`, `src/utils`, the components and the glossary for an
-  existing helper before adding one. Copy-paste fails the duplication check.
+  existing helper before adding one. Copy-paste fails the duplication check. Before changing
+  something, find the existing pattern and follow it.
+- Do only what was asked: no cleanups, refactorings or extra files beside the task; mention what you
+  notice instead of changing it.
+- No new Markdown files (notes, plans, summaries) unless asked for.
+- Handle errors only where they can happen: validate at the edges (user input, external calls), not
+  for cases the code cannot produce.
+- No abstraction for a case that does not exist: no parameter, option or helper on speculation.
+- No real credentials, tokens or personal data in code, tests, fixtures or logs; test data is invented.
+- The repo is public: no personal or local terms (names, hostnames, paths, internal labels) in code,
+  comments, commits or PRs.
+- Commit only when the user says so. Push only when the user says so.
+- Never `--no-verify`, `push --force` or `reset --hard` unless the user says so explicitly.
+- A commit message is one Conventional Commit line; a body only when the reason is not obvious.
 - Every test asserts something; no `.only` or skipped test is committed (lint rules enforce it).
+- The repo is public: no personal or local terms (names, hostnames, paths, internal labels) in code,
+  comments, commits or PRs.
+- Commit only when the user says so.
 - In Claude Code a hook formats and lints every edited file (`.claude/settings.json`,
   `scripts/lint_file.py`); fix what it reports in the same step.
 
 ## Readability
 
 - Comments explain why — decisions, constraints, edge cases — not what the code does. No
-  commented-out code (ruff `ERA`); git keeps the history.
+  commented-out code (ruff `ERA`); git keeps the history. A comment describes the code as it is,
+  not the change ("added", "now uses", "fixed"); that belongs in the commit.
+- Keep UI hints, placeholders and code comments short. No lengthy explanations.
+- An example only where it clarifies something that is not obvious without it; not as decoration
+  behind a label, a hint or a comment.
+- Texts users see are factual: no exclamation marks, emojis, "please" or "oops". An error says what
+  is wrong and what to do, in one sentence.
+- Keep UI hints, placeholders and code comments short. No lengthy explanations.
+- An example only where it clarifies something that is not obvious without it; not as decoration
+  behind a label, a hint or a comment.
 - One word per domain concept, the same in code, UI texts and docs (glossary below).
 <!-- [ADRS] -->
 - A decision someone might question later (a library, an architecture trade-off, a deliberate
   exception to these rules) gets an ADR in `adr/` (copy `adr/0000-template.md`); routine choices don't.
 <!-- [/] -->
 
-## Glossary
-
-<!-- One line per domain term once the first ones exist: term — meaning — UI label (en / de). -->
-
 ## Documentation
 
-<!-- [DOCS] keep this section only with docs/; otherwise: user-visible changes update README.md. -->
+<!-- [DOCS] -->
 - `docs/` holds the documentation (VitePress), served at `/docs/`. A change users or operators notice
   (new feature, changed rule, new setting or variable) updates the matching page.
 - **Every page exists in German and English** under the same path in `docs/de/` and `docs/en/`; change
   both in the same commit (the build fails when a counterpart is missing).
 - Professional and direct: no filler. Use the exact UI labels from `frontend/src/i18n/locales/`.
 - `just check-docs` must pass: dead links, anchors and missing translations fail it.
+<!-- [/] -->
+<!-- [NO_DOCS] -->
+- A change users or operators notice (new feature, changed rule, new setting or variable) updates
+  `README.md`.
+<!-- [/] -->
 
+<!-- [DOCKER] -->
 ## Docker / runtime
 
 - One image, two containers: `app` (`docker/entrypoint.sh` checks and migrates once, then supervisord
@@ -188,6 +217,15 @@ All commands live in the `justfile` (`just` lists them); CI and the VS Code task
   `Strict-Transport-Security` and that http requests are not redirected. The Django admin is off unless `ADMIN_ENABLED=true`, lives under `/django-admin` (so `/admin` stays
   free for the SPA) and signs in through the app's login only.
 - `compose.yml` must work with `.env` alone, without any other file from the repository.
+<!-- [/] -->
+
+## Project
+
+<!-- Only this project: architecture, extra rules, domain facts. The sections above stay as they are. -->
+
+## Glossary
+
+<!-- One line per domain term once the first ones exist: term — meaning — UI label (en / de). -->
 
 ## House defaults
 

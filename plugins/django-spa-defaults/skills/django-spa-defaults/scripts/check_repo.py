@@ -1232,6 +1232,16 @@ def repo_25(r: Repo) -> Result:
     return verdict(problems)
 
 
+def repo_26(r: Repo) -> Result:
+    if not (r.exists("AGENTS.md") and r.exists("backend/pyproject.toml") and r.has_frontend()):
+        return Result("n/a")
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import agents_compare
+    template = (SKILL_DIR / "assets" / "AGENTS.md").read_text(encoding="utf-8")
+    chosen = agents_compare.variants(r.read, r.exists, r.has_docker())
+    return verdict(agents_compare.compare(template, r.read("AGENTS.md"), chosen))
+
+
 def repo_24(r: Repo) -> Result:
     if open_question := not_recorded(r, RELEASES):
         return open_question

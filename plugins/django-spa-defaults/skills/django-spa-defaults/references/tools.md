@@ -53,6 +53,7 @@ For explaining a tool when the user asks ("what is zizmor?", "why just?", "expla
 - **Dependabot** — opens pull requests when a dependency, action or base image has a new version (fixed choice for us; waits 7 days after a release, so broken or malicious releases are usually pulled before we see them).
 - **dependency-review** — blocks pull requests that add a dependency with a known serious vulnerability (public repos).
 - **build provenance attestation** — a signed record of which workflow built the image from which commit; anyone can verify it with `gh attestation verify`.
+- **`agents_compare.py`** — part of the skill's scripts (REPO-26): compares the fixed part of a repo's AGENTS.md with the template for the repo's variants, paragraph by paragraph, and reports what is missing, changed or extra.
 - **`docker_compare.py`** — part of the skill's scripts (DOCKER-12): renders the template for a repo's variants, sets the project's extension blocks, names, versions and digests aside and reports every other difference in the Docker files.
 - **`check_pr_title.py` / the `pr-title` job** — fails a pull request whose title isn't a Conventional Commit (`feat: …`, `fix: …`). With squash merging the title becomes the commit message release-please reads, so one malformed title leaves a gap in the changelog. *Alternatives*: commitlint, a semantic-pull-request action.
 
